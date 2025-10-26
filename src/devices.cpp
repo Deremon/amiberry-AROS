@@ -70,6 +70,8 @@
 #ifdef AHI
 #include "ahi_v1.h"
 #endif
+#include "rommgr.h"
+#include "newcpu.h"
 #ifdef WITH_MIDIEMU
 #include "midiemu.h"
 #endif
@@ -210,17 +212,12 @@ void devices_reset(int hardreset)
 	// must be first
 	init_eventtab();
 	init_shm();
-
-#ifdef GFXBOARD
-	// must be before memory_reset()
-	gfxboard_reset();
-#endif
 	memory_reset();
 #ifdef AUTOCONFIG
 	rtarea_reset();
 #endif
 	DISK_reset();
-	CIA_reset(hardreset);
+	CIA_reset();
 	a1000_reset();
 #ifdef JIT
 	compemu_reset();
@@ -233,6 +230,9 @@ void devices_reset(int hardreset)
 	scsi_reset();
 	scsidev_reset();
 	scsidev_start_threads();
+#endif
+#ifdef GFXBOARD
+	gfxboard_reset ();
 #endif
 #ifdef DRIVESOUND
 	driveclick_reset();
@@ -266,9 +266,11 @@ void devices_reset(int hardreset)
 #ifdef RETROPLATFORM
 	rp_reset();
 #endif
+#ifdef WITH_KEYMCU
 	keymcu_reset();
 	keymcu2_reset();
 	keymcu3_reset();
+#endif
 	uae_int_requested = 0;
 }
 
@@ -295,6 +297,7 @@ void devices_hsync(void)
 {
 	DISK_hsync();
 	audio_hsync();
+	CIA_hsync_prehandler();
 
 	decide_blitter(-1);
 #ifdef AHI
@@ -367,7 +370,7 @@ void virtualdevice_free(void)
 	sampler_free();
 	inputdevice_close();
 	DISK_free();
-	dump_counts();
+	//dump_counts();
 #ifdef SERIAL_PORT
 	serial_exit();
 #endif
@@ -393,9 +396,11 @@ void virtualdevice_free(void)
 #ifdef WITH_DRACO
 	draco_free();
 #endif
+#ifdef WITH_KEYMCU
 	keymcu_free();
 	keymcu2_free();
 	keymcu3_free();
+#endif
 	execute_device_items(device_leaves, device_leave_cnt);
 }
 
@@ -406,12 +411,8 @@ void do_leave_program (void)
 	close_sound();
 	if (! no_gui)
 		gui_exit();
-#ifndef AMIBERRY // We don't use these here
-#ifdef USE_SDL
-	SDL_Quit();
-#endif
-	machdep_free();
-#endif
+
+	//machdep_free();
 }
 
 void virtualdevice_init (void)
@@ -459,9 +460,11 @@ void virtualdevice_init (void)
 #ifdef WITH_DRACO
 	draco_init();
 #endif
+#ifdef WITH_KEYMCU
 	keymcu_init();
 	keymcu2_init();
 	keymcu3_init();
+#endif
 }
 
 void devices_restore_start(void)
@@ -469,6 +472,7 @@ void devices_restore_start(void)
 	restore_audio_start();
 	restore_cia_start();
 	restore_blkdev_start();
+	restore_blitter_start();
 	restore_custom_start();
 	changed_prefs.bogomem.size = 0;
 	changed_prefs.chipmem.size = 0;

@@ -13,6 +13,7 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
 #include "newcpu.h"
 #include "uae.h"
 #include "xwin.h"

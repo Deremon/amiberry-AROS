@@ -14,6 +14,15 @@
 #include <netdb.h>
 #endif
 
+#ifdef __AROS__
+#include <proto/bsdsocket.h>
+#include <proto/miami.h>
+#include <proto/exec.h>
+#define sockaddr_storage sockaddr
+//struct Library * SocketBase;
+struct Library * MiamiBase;
+#endif
+
 #ifndef _WIN32
 #define SOCKADDR_INET sockaddr_storage
 #endif
@@ -54,6 +63,7 @@ int uae_socket_error()
 
 uae_socket uae_tcp_listen(const TCHAR *host, const TCHAR *port, int flags)
 {
+    int err; //was missing?
 	uae_socket s = UAE_SOCKET_INVALID;
 
 	if (!uae_socket_init()) {
@@ -68,7 +78,11 @@ uae_socket uae_tcp_listen(const TCHAR *host, const TCHAR *port, int flags)
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	PADDRINFOW socketinfo;
-	int err = GetAddrInfoW(host, port, &hints, &socketinfo);
+#ifdef __AROS__
+	err = GetAddrInfoW((char*) host,(char*) port, &hints, &socketinfo);
+#else	
+	err = GetAddrInfoW(host, port, &hints, &socketinfo);
+#endif
 	if (err < 0) {
 		write_log(_T("TCP: getaddrinfo failed, %s:%s: %d\n"),
 		          host, port, uae_socket_error());
@@ -102,7 +116,11 @@ uae_socket uae_tcp_listen(const TCHAR *host, const TCHAR *port, int flags)
 		}
 	}
 
+#ifdef __AROS__
+	err = bind(s, socketinfo->ai_addr, socketinfo->ai_addrlen);
+#else
 	err = ::bind(s, socketinfo->ai_addr, socketinfo->ai_addrlen);
+#endif
 	if (err < 0) {
 		write_log(_T("TCP: bind() failed, %s:%s: %d\n"),
 		          host, port, uae_socket_error());

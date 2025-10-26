@@ -13,11 +13,15 @@
 #include "cpuboard.h"
 #include "rommgr.h"
 #include "newcpu.h"
-#include <sys/mman.h>
+#ifdef __AROS__
+#include <proto/exec.h>
+#else
+ #include <sys/mman.h>
+#endif
 
 #include "gui.h"
 #include "sys/types.h"
-#ifndef __MACH__
+#if !defined(__MACH__) && !defined(__AROS__)
 #include "sys/sysinfo.h"
 #endif
 
@@ -145,7 +149,9 @@ static int VirtualProtect(void* lpAddress, int dwSize, int flNewProtect,
 static bool VirtualFree(void* lpAddress, size_t dwSize, int dwFreeType)
 {
 	if (dwFreeType == MEM_DECOMMIT) {
+	#ifndef __AROS__ //FIXME Decommit
 		return uae_vm_decommit(lpAddress, dwSize);
+	#endif /* AROS */
 	}
 	if (dwFreeType == MEM_RELEASE) {
 		return uae_vm_free(lpAddress, dwSize);
@@ -193,7 +199,13 @@ bool jit_direct_compatible_memory;
 
 bool can_have_1gb()
 {
-	#if defined(__linux__)
+	#ifdef __AROS__
+	ULONG total_free_mem;
+	total_free_mem = AvailMem(MEMF_ANY);
+	if (total_free_mem > 1073741824UL)
+		return true;
+	return false;
+	#elif defined(__linux__)
 	struct sysinfo mem_info{};
 	sysinfo(&mem_info);
 	long long total_phys_mem = mem_info.totalram;
@@ -235,6 +247,12 @@ static void clear_shm ()
 	}
 }
 
+#ifdef __AROS__ //Free the initially reserved memory
+static void free_natsize (void)
+{
+	FreeMem(natmem_offset, natmem_reserved_size + BARRIER);
+}
+#endif
 bool preinit_shm ()
 {
 	uae_u64 total64;
@@ -288,6 +306,9 @@ bool preinit_shm ()
 	len = sizeof(totalphys64);
 	sysctl(mib, 2, &totalphys64, &len, nullptr, 0);
 	total64 = (uae_u64) totalphys64;
+#elif __AROS__
+	total64 = (uae_u64) AvailMem(MEMF_ANY) * (uae_u64)getpagesize();
+	totalphys64 = (uae_u64) AvailMem(MEMF_ANY) * (uae_u64)getpagesize();
 #else
 	totalphys64 = sysconf (_SC_PHYS_PAGES) * (uae_u64)getpagesize();
 	total64 = (uae_u64)sysconf (_SC_PHYS_PAGES) * (uae_u64)getpagesize();
@@ -316,12 +337,22 @@ bool preinit_shm ()
 	if (static_cast<uae_u64>(max_allowed_mman) * 1024 * 1024 > size64)
 		max_allowed_mman = static_cast<uae_u32>(size64 / (1024 * 1024));
 
+#ifndef __AROS__
 	uae_u32 natmem_size = (max_allowed_mman + 1) * 1024 * 1024;
 	natmem_size = std::max<uae_u32>(natmem_size, 17 * 1024 * 1024);
+#else
+	uae_u32 natmem_size = (max_allowed_mman + BARRIER) * 1024 * 1024;
+	if (natmem_size < 16 * 1024 * 1024)
+		natmem_size = (BARRIER + 16) * 1024 * 1024;
+#endif
 
 #if WIN32_NATMEM_TEST
 	natmem_size = WIN32_NATMEM_TEST * 1024 * 1024;
 #endif
+//#ifdef __AROS__
+//#define ADDITIONAL_MEMSIZE (128 * 1024 * 1024)
+//	natmem_size = ADDITIONAL_MEMSIZE + BARRIER + 256 * 1024 * 1024;
+//#endif
 
 	natmem_size = std::min(natmem_size, 0xc0000000);
 
@@ -635,6 +666,9 @@ void free_shm ()
 	for (int & i : ortgmem_type) {
 		i = -1;
 	}
+#ifdef __AROS__ //Free natsize reserved memory otherwise will not be freed on exit
+	free_natsize();
+#endif /* AROS */
 }
 
 void mapped_free (addrbank *ab)

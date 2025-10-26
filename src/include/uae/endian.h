@@ -7,7 +7,7 @@
 
 #include "uae/types.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__AROS__)
 
 /* Use custom conversion routines for Windows */
 #ifdef WORDS_BIGENDIAN

@@ -12,8 +12,12 @@
 #include "uae/log.h"
 #include "options.h"
 #include "memory.h"
-#ifdef _WIN32
+#if defined _WIN32
 
+#elif defined __AROS__
+#define BARRIER 32
+#define MAP_FAILED ((void *)-1)
+#include <proto/exec.h>
 #else
 #include <sys/mman.h>
 #endif
@@ -25,7 +29,7 @@
 #endif
 
 //#if defined(LINUX) && defined(CPU_x86_64)
-#if defined(CPU_x86_64) && !defined(__APPLE__) && !defined(_WIN32)
+#if defined(CPU_x86_64) && !defined(__APPLE__)
 #define HAVE_MAP_32BIT 1
 #endif
 
@@ -87,6 +91,7 @@ static uae_u32 remove_allocation(void *address)
 
 static int protect_to_native(int protect)
 {
+#ifndef __AROS__
 #ifdef _WIN32
 	if (protect == UAE_VM_NO_ACCESS) return PAGE_NOACCESS;
 	if (protect == UAE_VM_READ) return PAGE_READONLY;
@@ -105,6 +110,7 @@ static int protect_to_native(int protect)
 	}
 	write_log("VM: Invalid protect value %d\n", protect);
 	return PROT_NONE;
+#endif
 #endif
 }
 
@@ -126,6 +132,8 @@ int uae_vm_page_size(void)
 		SYSTEM_INFO si;
 		GetSystemInfo(&si);
 		page_size = si.dwPageSize;
+#elif __AROS__
+		page_size = 4096;
 #else
 		page_size = sysconf(_SC_PAGESIZE);
 #endif
@@ -147,6 +155,7 @@ static void *uae_vm_alloc_with_flags(uae_u32 size, int flags, int protect)
 			size, flags, protect_description(protect));
 #endif
 
+#ifndef __AROS__ //FIXME is memory protection possible?
 #ifdef _WIN32
 	int va_type = MEM_COMMIT | MEM_RESERVE;
 	if (flags & UAE_VM_WRITE_WATCH) {
@@ -157,8 +166,8 @@ static void *uae_vm_alloc_with_flags(uae_u32 size, int flags, int protect)
 	int mmap_flags = MAP_PRIVATE | MAP_ANON;
 	int mmap_prot = protect_to_native(protect);
 #endif
-
-#if !defined(CPU_64_BIT) || defined(__APPLE__)
+#endif
+#if !defined(CPU_64_BIT) or defined(__APPLE__)
 	flags &= ~UAE_VM_32BIT;
 #endif
 	if (flags & UAE_VM_32BIT) {
@@ -173,11 +182,16 @@ static void *uae_vm_alloc_with_flags(uae_u32 size, int flags, int protect)
 			step = 1024 * 1024;
 		}
 #ifdef HAVE_MAP_32BIT
+#ifdef __AROS__
+		address = (unsigned char *)AllocMem(size + BARRIER, MEMF_31BIT);
+#else
 		address = mmap(0, size, mmap_prot, mmap_flags | MAP_32BIT, -1, 0);
+#endif
 		if (address == MAP_FAILED) {
 			address = NULL;
 		}
 #endif
+#ifndef __AROS__ // cannot use this memory allocation handle
 		while (address == NULL) {
 			if (p > p_end) {
 				break;
@@ -196,9 +210,14 @@ static void *uae_vm_alloc_with_flags(uae_u32 size, int flags, int protect)
 #endif
 			p += step;
 		}
-	} else {
+#endif /* AROS */
+	} 
+#ifndef __AROS__ // memory must be 32BIT	
+	else {
 #ifdef _WIN32
 		address = VirtualAlloc(NULL, size, va_type, va_protect);
+#elif defined(__AROS__)
+		address = (unsigned char *)AllocMem(size + BARRIER, MEMF_31BIT);		
 #else
 		address = mmap(0, size, mmap_prot, mmap_flags, -1, 0);
 		if (address == MAP_FAILED) {
@@ -206,6 +225,7 @@ static void *uae_vm_alloc_with_flags(uae_u32 size, int flags, int protect)
 		}
 #endif
 	}
+#endif /* AROS */
 
 	if (address == NULL) {
 		write_log("VM: uae_vm_alloc(%u, %d, %d) mmap failed (%d)\n",
@@ -228,6 +248,7 @@ void *uae_vm_alloc(uae_u32 size, int flags, int protect)
 
 static bool do_protect(void *address, int size, int protect)
 {
+#ifndef __AROS__
 #ifdef TRACK_ALLOCATIONS
 	uae_u32 allocated_size = find_allocation(address);
 	assert(allocated_size == size);
@@ -246,6 +267,7 @@ static bool do_protect(void *address, int size, int protect)
 		return false;
 	}
 #endif
+#endif
 	return true;
 }
 
@@ -262,6 +284,8 @@ static bool do_free(void *address, int size)
 #endif
 #ifdef _WIN32
 	return VirtualFree(address, 0, MEM_RELEASE) != 0;
+#elif defined(__AROS__)
+	FreeMem(address, size + BARRIER);
 #else
 	if (munmap(address, size) != 0) {
 		write_log("VM: uae_vm_free(%p, %d) munmap failed (%d)\n",
@@ -297,6 +321,8 @@ static void *try_reserve(uintptr_t try_addr, uae_u32 size, int flags)
 	if (address == NULL) {
 		return NULL;
 	}
+#elif defined(__AROS__)
+	address = (unsigned char *)AllocMem(size + BARRIER, MEMF_31BIT);
 #else
 	int mmap_flags = MAP_PRIVATE | MAP_ANON;
     #if defined(__FreeBSD__)
@@ -319,6 +345,8 @@ static void *try_reserve(uintptr_t try_addr, uae_u32 size, int flags)
 					size, (uae_u64) (uintptr_t) address);
 #ifdef _WIN32
 			VirtualFree(address, 0, MEM_RELEASE);
+#elif defined(__AROS__)
+			FreeMem(address, size + BARRIER);
 #else
 			munmap(address, size);
 #endif
@@ -414,6 +442,10 @@ bool uae_vm_decommit(void *address, uae_u32 size)
 	//write_log("VM: Decommit 0x%-8x bytes at %p\n", size, address);
 #ifdef _WIN32
 	return VirtualFree (address, size, MEM_DECOMMIT) != 0;
+#elif defined(__AROS__)
+	FreeMem(address, size + BARRIER);
+	//void *result = (unsigned char*) AllocMem(size + BARRIER, MEMF_31BIT);
+    	return true; 
 #else
     /* Re-map the memory so we get fresh unused pages (and the old ones can be
      * released and physical memory reclaimed). We also assume that the new

@@ -16,7 +16,6 @@
 #include "inputdevice.h"
 #include "amiberry_gfx.h"
 #include "amiberry_input.h"
-#include "dpi_handler.hpp"
 #include "fsdb_host.h"
 #include "xwin.h"
 
@@ -119,7 +118,11 @@ static void InitShowMessage(const std::string& message)
 
 	if (mon->gui_renderer == nullptr)
 	{
+#ifndef __AROS__
 		mon->gui_renderer = SDL_CreateRenderer(mon->gui_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+#else
+		mon->gui_renderer = SDL_CreateRenderer(mon->gui_window, -1, SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC);
+#endif
 		check_error_sdl(mon->gui_renderer == nullptr, "Unable to create a renderer:");
 		SDL_RenderSetLogicalSize(mon->gui_renderer, GUI_WIDTH, GUI_HEIGHT);
 	}
@@ -138,7 +141,8 @@ static void InitShowMessage(const std::string& message)
 		}
 	}
 
-	DPIHandler::set_render_scale(mon->gui_renderer);
+	// make the scaled rendering look smoother (linear scaling).
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 
 	if (gui_texture == nullptr)
 	{

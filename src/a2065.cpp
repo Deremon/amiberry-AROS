@@ -14,6 +14,7 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
 #include "newcpu.h"
 #include "a2065.h"
 #include "ethernet.h"
@@ -21,6 +22,7 @@
 #include "savestate.h"
 #include "autoconf.h"
 #include "rommgr.h"
+#include "debug.h"
 #include "devices.h"
 #include "threaddep/thread.h"
 

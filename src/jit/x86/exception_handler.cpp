@@ -9,7 +9,11 @@
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
+#ifdef __AROS__
+#include <ucontext.h>
+#else
 #include <sys/ucontext.h>
+#endif
 #endif
 #include <signal.h>
 

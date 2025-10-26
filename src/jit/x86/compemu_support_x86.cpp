@@ -4320,8 +4320,10 @@ void build_comp(void)
 
 #ifdef NATMEM_OFFSET
 #ifdef UAE
+#ifndef __AROS__
 #ifdef JIT_EXCEPTION_HANDLER
 	install_exception_handler();
+#endif
 #endif
 #endif
 #endif
@@ -5087,7 +5089,11 @@ static void compile_block(cpu_history* pc_hist, int blocklen)
 
 				if (x==0xff || 1) {  /* To be on the safe side */
 					uae_u16* next=(uae_u16*)next_pc_p;
+#ifndef __AROS__
 					uae_u32 op=DO_GET_OPCODE(next);
+#else
+					uae_u32 op=(uae_u32)DO_GET_OPCODE(next);
+#endif
 
 					x=FLAG_ALL;
 					x&=(~prop[op].set_flags);

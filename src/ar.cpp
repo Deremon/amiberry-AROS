@@ -214,6 +214,8 @@
 #include "ar.h"
 #include "savestate.h"
 #include "crc32.h"
+#include "akiko.h"
+#include "xwin.h"
 #include "gfxboard.h"
 
 static const TCHAR *cart_memnames[] = { NULL, _T("hrtmon"), _T("arhrtmon"), _T("superiv") };

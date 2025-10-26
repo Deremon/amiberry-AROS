@@ -16,6 +16,7 @@
 #include "custom.h"
 #include "picasso96.h"
 #include "gfxboard.h"
+#include "statusline.h"
 #include "rommgr.h"
 //#include "framebufferboards.h" // file was empty
 #include "xwin.h"

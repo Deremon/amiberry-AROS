@@ -38,7 +38,7 @@
 
 #if 1
 
-#define THREADED_QUEUE 1
+#define THREADED_QUEUE 0
 
 extern void activate_debugger(void);
 
@@ -3332,7 +3332,7 @@ static void fifo_process(void *priv)
     }
 }
 
-static int
+static void
 fifo_thread(void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
@@ -3343,7 +3343,6 @@ fifo_thread(void *priv)
         thread_reset_event(mystique->wake_fifo_thread);
         fifo_process(priv);
     }
-    return 0;
 }
 
 static void

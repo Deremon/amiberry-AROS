@@ -28,7 +28,7 @@
 #define AMIBERRYBETA _T("")
 #endif
 
-#define AMIBERRYDATE MAKEBD(2025, 9, 5)
+#define AMIBERRYDATE MAKEBD(2025, 8, 23)
 #define COPYRIGHT _T("Copyright (C) 2025 Dimitris Panokostas")
 
 #ifndef AMIBERRYEXTRA
@@ -223,12 +223,18 @@ typedef void* HMODULE;
 typedef SDL_Window* HWND;
 typedef void* HKEY;
 typedef void* OSVERSIONINFO;
+#ifndef __AROS__
 typedef bool BOOL;
+#endif
 typedef int LPARAM;
 typedef int WPARAM;
+#ifndef __AROS__
 typedef int WORD;
+#endif
 typedef unsigned int UINT;
+#ifndef __AROS__
 typedef long LONG;
+#endif
 #define WINAPI
 typedef long GUID;
 typedef wchar_t* LPCWSTR;

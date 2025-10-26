@@ -18,6 +18,9 @@
 #include "inputdevice.h"
 #include "amiberry_gfx.h"
 #include "amiberry_input.h"
+#ifdef __AROS__
+#include <proto/dos.h>
+#endif
 
 enum
 {
@@ -73,22 +76,64 @@ public:
 	void changeDir(const std::string& path)
 	{
 		read_directory(path, &dirs, nullptr);
+#ifndef __AROS__
 		if (std::find(dirs.begin(), dirs.end(), "..") == dirs.end())
 			dirs.insert(dirs.begin(), "..");
+#else
+		// Always add ".." at top unless top level
+		if (path[strlen(path.c_str()) - 1] != ':')
+			dirs.insert(dirs.begin(), "..");
+#endif
 	}
 };
 
+#ifdef __AROS__
+static SelectDirListModel dirList("");
+#else
 static SelectDirListModel dirList(".");
+#endif
 
 static void checkfoldername(const std::string& current)
 {
 	DIR* dir;
 
+#ifdef __AROS__
+	char tmppath[MAX_DPATH];
+	char* newcur = static_cast<char*>(std::malloc(MAX_DPATH));
+	int len = strlen(current.c_str());
+		// Workaround for ".."
+		if (current.c_str()[len - 1] == '.' && current.c_str()[len - 2] == '.')
+		{
+			strncpy(tmppath, current.c_str(), MAX_DPATH);
+			char *p = tmppath + len;
+			int cnt = 0;
+			while (p > tmppath)
+			{
+				if (*p == '.') cnt++;
+				if (*p == '/' || *p == ':') cnt++;
+				if (cnt == 4) // 2x '.' & 2x '/'
+				{
+					if (*p == ':') p[1] = '\0'; else p[0] = '\0';
+					newcur = tmppath;
+					break;
+				}
+				p--;
+			}
+		} else {
+			dirList = current;
+			strncpy(newcur, current.c_str(), MAX_DPATH);
+		}
+	if ((dir = opendir(newcur)))
+	{
+		dirList = std::string(newcur);
+		auto* const ptr = newcur;
+#else
 	if ((dir = opendir(current.c_str())))
 	{
 		char actualpath [MAX_DPATH];
 		dirList = current;
 		auto* const ptr = realpath(current.c_str(), actualpath);
+#endif
 		workingDir = std::string(ptr);
 		closedir(dir);
 		lstFolders->adjustSize();
@@ -108,10 +153,16 @@ public:
 	void action(const gcn::ActionEvent& actionEvent) override
 	{
 		const auto selected_item = lstFolders->getSelected();
+#ifdef __AROS__
+		if (workingDir[strlen(workingDir.c_str()) - 1] != ':') {
+#endif
 		const std::string folder_name = workingDir.append("/").append(dirList.getElementAt(selected_item));
 
 		volName = dirList.getElementAt(selected_item);
 		checkfoldername(folder_name);
+#ifdef __AROS__
+		}
+#endif
 	}
 };
 

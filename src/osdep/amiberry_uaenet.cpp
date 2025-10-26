@@ -9,11 +9,14 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "ethernet.h"
+// moved here...needed outside of WITH_UAENET_PCAP
+static int ethernet_paused;
 
 #ifdef WITH_UAENET_PCAP
 #include <pcap.h>
 
 #include "options.h"
+#include "traps.h"
 #include "sana2.h"
 #include "threaddep/thread.h"
 
@@ -57,7 +60,7 @@ struct uaenet_data {
 
 int log_ethernet;
 static int enumerated;
-static int ethernet_paused;
+//static int ethernet_paused;
 static struct uaenet_data **uaenet_data;
 static int uaenet_count;
 static uae_sem_t queue_available;
@@ -416,15 +419,12 @@ int uaenet_getdatalenght(void)
 // Pause ethernet operations
 void ethernet_pause(int pause)
 {
-#ifdef WITH_UAENET_PCAP
     ethernet_paused = pause;
-#endif
 }
 
 // Reset ethernet subsystem
 void ethernet_reset(void)
 {
-#ifdef WITH_UAENET_PCAP
     ethernet_paused = 0;
-#endif
 }
+

@@ -10,6 +10,8 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
+#include "newcpu.h"
 #include "traps.h"
 #include "autoconf.h"
 #include "execlib.h"
@@ -110,10 +112,12 @@ static uae_u32 REGPARAM2 lib_expungefunc (TrapContext *context)
 	return 0;
 }
 
+#ifndef __AROS__
 #define TAG_DONE   (0L)		/* terminates array of TagItems. ti_Data unused */
 #define TAG_IGNORE (1L)		/* ignore this item, not end of array */
 #define TAG_MORE   (2L)		/* ti_Data is pointer to another array of TagItems */
 #define TAG_SKIP   (3L)		/* skip this and the next ti_Data items */
+#endif
 
 static uae_u32 REGPARAM2 lib_allocfunc (TrapContext *ctx)
 {

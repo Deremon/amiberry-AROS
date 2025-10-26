@@ -19,7 +19,10 @@ uae_s64 read_processor_time_rdtsc(void);
 typedef uae_time_t frame_time_t;
 
 extern int64_t g_uae_epoch;
-
+#ifdef __AROS__
+extern int64_t get_aros_time();
+#endif
+#ifndef __AROS__
 /* Returns elapsed time in microseconds since start of emulator. */
 static inline frame_time_t read_processor_time(void)
 {
@@ -33,7 +36,13 @@ static inline frame_time_t read_processor_time(void)
     // Combine calculations to reduce operations
     return ((ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000)) - g_uae_epoch;
 }
+#else
+static inline frame_time_t read_processor_time(void)
+{
+	return (frame_time_t)get_aros_time();
+}
+#endif
 
-extern frame_time_t syncbase, cputimebase;
+extern frame_time_t syncbase;
 
 #endif /* UAE_TIME_H */

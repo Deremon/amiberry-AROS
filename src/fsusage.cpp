@@ -28,7 +28,7 @@ Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 #if defined(STAT_STATVFS) && !defined(__ANDROID__)
 #include <sys/statvfs.h>
 // For osx, sigurbjornl
-#elif defined (__MACH__) || defined(__FreeBSD__)
+#elif defined (__MACH__) || defined(__FreeBSD__) || defined(__AROS__)
 #include <sys/mount.h>
 #else
 #include <sys/vfs.h>
@@ -111,7 +111,7 @@ int statfs ();
 
 #if defined(__linux__)
 #include <sys/vfs.h>
-#elif defined(__FreeBSD__) || defined(__APPLE__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__AROS__)
 #include <sys/mount.h>
 #else
 #error "Filesystem header not supported on this platform"
@@ -131,7 +131,7 @@ int statfs ();
 
 #if defined(__linux__)
 #include <sys/statfs.h>
-#elif defined(__FreeBSD__) || defined(__APPLE__)
+#elif defined(__FreeBSD__) || defined(__APPLE__) || defined(__AROS__)
 #include <sys/mount.h>
 #else
 #error "Platform not supported for filesystem stats"
@@ -310,7 +310,7 @@ int get_fs_usage (const TCHAR *path, const TCHAR *disk, struct fs_usage *fsp)
 
 #endif /* STAT_STATVFS */
 
-#if !defined(STAT_STATFS2_FS_DATA) && !defined(STAT_READ_FILSYS)
+#if !defined(STAT_STATFS2_FS_DATA) && !defined(STAT_READ_FILSYS) && !defined(__AROS__)
 	/* !Ultrix && !SVR2 */
 
 	fsp->total = (uae_s64)fsd.f_bsize * (uae_s64)fsd.f_blocks;

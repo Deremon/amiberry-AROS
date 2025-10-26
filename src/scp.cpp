@@ -13,6 +13,8 @@
 
 #include "scp.h"
 #include "zfile.h"
+#include "gui.h"
+#include "uae.h"
 #include "uae/endian.h"
 
 #include <stdint.h>

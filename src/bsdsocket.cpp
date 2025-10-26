@@ -16,6 +16,8 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
+#include "newcpu.h"
 #include "autoconf.h"
 #include "traps.h"
 #include "bsdsocket.h"
@@ -1389,12 +1391,13 @@ static const uae_u32 number_io_error = sizeof (io_errlist) / sizeof (*io_errlist
 static const TCHAR * const strErr = _T("Errlist lookup error");
 static uae_u32 strErrptr, strReleaseVer;
 
-
+#ifndef __AROS__
 #define TAG_DONE   (0L)		/* terminates array of TagItems. ti_Data unused */
 #define TAG_IGNORE (1L)		/* ignore this item, not end of array */
 #define TAG_MORE   (2L)		/* ti_Data is pointer to another array of TagItems */
 #define TAG_SKIP   (3L)		/* skip this and the next ti_Data items */
 #define TAG_USER   ((uae_u32)(1L << 31))
+#endif
 
 #define SBTF_VAL 0x0000
 #define SBTF_REF 0x8000

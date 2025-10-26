@@ -418,7 +418,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE_BUNDLE_NAME "Amiberry"
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-        MACOSX_BUNDLE_COPYRIGHT "(c) 2025 Dimitris Panokostas"
+        MACOSX_BUNDLE_COPYRIGHT "(c) 2016-2025 Dimitris Panokostas"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -430,7 +430,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64" OR CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE CPU_AARCH64)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+            CPU_AARCH64
+    )
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     target_compile_definitions(${PROJECT_NAME} PRIVATE
             CPU_arm ARMV6_ASSEMBLY ARMV6T2 USE_ARMNEON ARM_HAS_DIV

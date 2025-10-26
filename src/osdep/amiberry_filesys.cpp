@@ -33,7 +33,13 @@ namespace fs = std::filesystem;
 #endif
 
 #include <set>
+#ifdef __AROS__
+#define BARRIER 32
+#define MAP_FAILED ((void *)-1)
+#include <proto/exec.h>
+#else
 #include <sys/mman.h>
+#endif
 
 #include "crc32.h"
 #include "fsdb_host.h"
@@ -188,6 +194,9 @@ static bool has_logged_iconv_fail = false;
 	if (str.empty()) {
 		return {};
 	}
+#ifdef __AROS__ //AROS does use iso_8859_1 no need to convert it
+	return static_cast<std::string> (str);
+#else
 
 	// Calculate exact size needed to avoid reallocations
 	const auto utf8_size = std::count_if(str.begin(), str.end(),
@@ -212,6 +221,7 @@ static bool has_logged_iconv_fail = false;
 	}
 
 	return str_out;
+#endif
 }
 
 #endif
@@ -1725,11 +1735,21 @@ std::string my_get_sha1_of_file(const char* filepath)
             size_t size = 0;
 
             MappedMemory(int fd, size_t sz) : size(sz) {
-                mem = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
+                #ifdef __AROS__
+	            void* mem = AllocMem(size, MEMF_31BIT);
+                #else
+	            void* mem = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
+                #endif
             }
 
             ~MappedMemory() {
-                if (mem != MAP_FAILED) munmap(mem, size);
+                
+                if (mem != MAP_FAILED) 
+                #ifdef __AROS__
+	            FreeMem(mem, size + BARRIER);
+                #else
+	            munmap(mem, size);
+                #endif
             }
 
             bool valid() const { return mem != MAP_FAILED; }

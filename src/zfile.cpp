@@ -16,6 +16,7 @@
 #include "options.h"
 #include "zfile.h"
 #include "disk.h"
+#include "gui.h"
 #include "crc32.h"
 #include "fsdb.h"
 #include "fsusage.h"
@@ -137,7 +138,7 @@ static void zcache_close (void)
 	while (zc) {
 		struct zcache *n = zc->next;
 		zcache_free_data (zc);
-		xfree(zc);
+		xfree (n);
 		zc = n;
 	}
 }

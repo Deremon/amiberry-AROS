@@ -25,7 +25,7 @@ static svga_t *svga_pri;
 bool svga_on(void *p)
 {
     svga_t *svga = (svga_t*)p;
-    return svga->scrblank == 0 && svga->hdisp >= 80 && (svga->crtc[0x17] & 0x80) && !svga->dpms;
+    return svga->scrblank == 0 && svga->hdisp >= 80 && (svga->crtc[0x17] & 0x80);
 }
 
 int svga_get_vtotal(void *p)
@@ -342,10 +342,6 @@ void svga_recalctimings(svga_t *svga)
         double _dispontime, _dispofftime, disptime;
         int text = 0;
 
-        if (svga->fb_auto == 1) {
-            svga->fb_only = -1;
-        }
-
         svga->vtotal = svga->crtc[6];
         svga->dispend = svga->crtc[0x12];
         svga->vsyncstart = svga->crtc[0x10];
@@ -420,9 +416,6 @@ void svga_recalctimings(svga_t *svga)
             }
             svga->hdisp_old = svga->hdisp;
             text = 1;
-            if (svga->fb_auto) {
-                svga->fb_only = 0;
-            }
         }
         else
         {
@@ -436,18 +429,12 @@ void svga_recalctimings(svga_t *svga)
                     svga->render = svga_render_4bpp_lowres;
                 else
                     svga->render = svga_render_4bpp_highres;
-                if (svga->fb_auto) {
-                    svga->fb_only = 0;
-                }
                 break;
             case 0x20: /*4 colours*/
                 if (svga->seqregs[1] & 8) /*Low res (320)*/
                     svga->render = svga_render_2bpp_lowres;
                 else
                     svga->render = svga_render_2bpp_highres;
-                if (svga->fb_auto) {
-                    svga->fb_only = 0;
-                }
                 break;
             case 0x40: case 0x60: /*256+ colours*/
                 switch (svga->bpp)
@@ -635,13 +622,8 @@ int svga_poll(void *p)
                         if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on)
                                 svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] = svga->interlace ? 3 : 2;
                       
-                        if (!svga->override) {
-                            if (svga->dpms) {
-                                svga_render_blank(svga);
-                            } else {
+                        if (!svga->override)
                                 svga->render(svga);
-                            }
-                        }
                         
                         if (svga->overlay_on)
                         {

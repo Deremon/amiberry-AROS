@@ -5,11 +5,12 @@
 #include "ethernet.h"
 #ifdef _WIN32
 #include "win32_uaenet.h"
-#elif defined (AMIBERRY)
+#else
 #include "amiberry_uaenet.h"
 #endif
 #include "threaddep/thread.h"
 #include "options.h"
+#include "traps.h"
 #include "sana2.h"
 #include "uae/slirp.h"
 #include "gui.h"

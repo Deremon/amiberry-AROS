@@ -46,6 +46,13 @@
 #define PARALLEL_PORT /* parallel port emulation */
 //#define PARALLEL_DIRECT /* direct parallel port emulation */
 
+// added by farox to enable compilation without Keyboard MCU
+// disabled ...for now
+//#define WITH_KEYMCU
+//added by farox to enable compilation without Amiberry_serial.cpp
+//disabled ... for now
+//#define AMIBERRY_SERIAL
+
 // We define this externally in Amiberry
 #ifdef USE_LIBSERIALPORT
 #define SERIAL_PORT  /* serial port emulation */
@@ -81,8 +88,10 @@
 #define ACTION_REPLAY /* Action Replay 1/2/3 support */
 #define PICASSO96 /* Picasso96 display card emulation */
 #define UAEGFX_INTERNAL /* built-in libs:picasso96/uaegfx.card */
+#ifndef __AROS__
 #define BSDSOCKET /* bsdsocket.library emulation */
 #define CAPS /* CAPS-image support */
+#endif
 #define SCP /* SuperCardPro */
 #define FDI2RAW /* FDI 1.0 and 2.x image support */
 /* #define AVIOUTPUT */ /* Avioutput support */
@@ -93,13 +102,18 @@
 #define SAVESTATE /* State file support */
 #define A2091 /* A590/A2091 SCSI */
 #define A2065 /* A2065 Ethernet card */
+#ifndef __AROS__
 #define GFXBOARD /* Hardware graphics board */
 #define SANA2 /* SANA2 network driver */
+#endif
 #define AMAX /* A-Max ROM adapter emulation */
 /* #define RETROPLATFORM */ /* Cloanto RetroPlayer support */
+#ifndef __AROS__
 #define WITH_CHD
+#endif
 /* #define WITH_LUA */ /* lua scripting */
 #define WITH_UAENATIVE
+#ifndef __AROS__
 #define WITH_SLIRP
 #define WITH_BUILTIN_SLIRP
 #define WITH_TABLETLIBRARY
@@ -116,12 +130,16 @@
 #define WITH_QEMU_CPU
 #define WITH_DRACO
 #endif
-
+#endif // AROS
 #define WITH_THREADED_CPU
 /* #define WITH_SOFTFLOAT */
+#ifndef __AROS__
 #define FLOPPYBRIDGE
+#endif
 #define WITH_MIDIEMU
+#ifndef __AROS__
 #define WITH_DSP
+#endif
 
 // We define this externally in Amiberry
 // Use portmidi library for MIDI devices
@@ -129,6 +147,7 @@
 #define WITH_MIDI
 #endif
 
+#ifndef __AROS__
 /* vpar virtual parallel port */
 #define WITH_VPAR 1
 
@@ -142,6 +161,7 @@
 
 // CPU accelerator board support
 #define WITH_CPUBOARD
+#endif //AROS
 
 // Special Monitors support
 #define WITH_SPECIALMONITORS
@@ -158,6 +178,8 @@
 #define A_LZX
 #define A_DMS
 #define A_WRP
+
+#define UAE_RAND_MAX RAND_MAX
 
 #ifndef GFXFILTER
 #undef OPENGL
@@ -206,6 +228,9 @@ typedef int32_t uae_atomic;
 /* Define if your struct stat has st_blocks.  */
 /* #undef HAVE_ST_BLOCKS */
 
+/* Define if utime(file, NULL) sets file's timestamp to the present.  */
+#define HAVE_UTIME_NULL 1
+
 /* Define as __inline if that's what the C compiler calls it.  */
 /* #undef inline */
 
@@ -218,8 +243,14 @@ typedef int32_t uae_atomic;
 /* Define to `int' if <sys/types.h> doesn't define.  */
 /* #undef pid_t */
 
+/* Define if you need to in order for stat and other things to work.  */
+/* #undef _POSIX_SOURCE */
+
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
+
+/* Define if you have the ANSI C header files.  */
+#define STDC_HEADERS 1
 
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #define TIME_WITH_SYS_TIME 1
@@ -295,7 +326,9 @@ typedef int32_t uae_atomic;
 /* #undef STAT_STATFS4 */
 
 /* Define if there is a function named statvfs.  [SVR4]  */
+#ifndef __AROS__
 #define STAT_STATVFS
+#endif
 
 /* Define if the block counts reported by statfs may be truncated to 2GB
    and the correct values may be stored in the f_spare array.
@@ -555,7 +588,9 @@ typedef int32_t uae_atomic;
 /* #undef HAVE_SYS_UTIME_H */
 
 /* Define if you have the <sys/vfs.h> header file.  */
+#ifndef __AROS__
 #define HAVE_SYS_VFS_H 1
+#endif
 
 /* Define if you have the <unistd.h> header file.  */
 #define HAVE_UNISTD_H 1
@@ -594,7 +629,9 @@ typedef int32_t uae_atomic;
 #endif
 
 #define strcmpi(x,y) SDL_strcasecmp(x,y)
+#ifndef __AROS__
 #define stricmp(x,y) SDL_strcasecmp(x,y)
+#endif
 
 typedef int SOCKET;
 #define INVALID_SOCKET -1
@@ -618,9 +655,15 @@ typedef unsigned short USHORT;
 #define _T(x)               x
 typedef char TCHAR;
 #endif
+#ifdef __AROS__
+extern long _timezone;
+extern int _daylight;
+void _tzset();
+#else
 #define _tzset()            tzset()
 #define _timezone           timezone
 #define _daylight           daylight
+#endif
 // Ftello and fseeko on OSX are alerady 64bit
 #if defined ANDROID || defined __MACH__ || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 #define _ftelli64(x)        ftello(x)

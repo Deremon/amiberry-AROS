@@ -7,17 +7,23 @@
  *
  */
 
+#ifdef AMIBERRY_SERIAL
+// farox disabled...for now
+
 #include "sysconfig.h"
+
 #ifdef SERIAL_ENET
 #include "enet/enet.h"
 #endif
 #include "sysdeps.h"
 
 #include "options.h"
+#include "uae.h"
 #include "memory.h"
 #include "custom.h"
 #include "events.h"
 #include "newcpu.h"
+#include "cia.h"
 #include "serial.h"
 #ifdef ENFORCER
 #include "enforcer.h"
@@ -44,7 +50,10 @@
 #include <libserialport.h>
 #endif
 #include <netinet/tcp.h>
+
+#ifndef __AROS__
 #include <sys/mman.h>
+#endif
 
 #define SERIALLOGGING 0
 #define SERIALDEBUG 0 /* 0, 1, 2 3 */
@@ -53,8 +62,10 @@
 #define SERIAL_BREAK_DELAY (20 * maxvpos)
 #define SERIAL_BREAK_TRANSMIT_DELAY 4
 
-
+#ifndef __AROS__
+//farox to..do?? need <sys/shm.h>...not on AROS
 #define SERIAL_MAP
+#endif
 
 #ifdef SERIAL_MAP
 #define SERMAP_SIZE 256
@@ -82,16 +93,14 @@ static bool safe_receive;
 static uae_u16* receive_buf;
 static bool sticky_receive_interrupt;
 static int receive_buf_size, receive_buf_count;
-static void flushqueue(void);
 
 #define SER_MEMORY_MAPPING _T("Amiberry_Serial")
 
 static void shmem_serial_send(uae_u32 data)
 {
 	sermap1->active_write = true;
-	if (!sermap1->active_read) {
+	if (!sermap1->active_read)
 		return;
-	}
 	uae_u32 v = sermap1->write_offset;
 	if (((v + 1) & (SERMAP_SIZE - 1)) == sermap1->read_offset) {
 		write_log(_T("Shared serial port memory overflow!\n"));
@@ -105,13 +114,11 @@ static void shmem_serial_send(uae_u32 data)
 static uae_u32 shmem_serial_receive()
 {
 	sermap2->active_read = true;
-	if (!sermap2->active_write) {
+	if (!sermap2->active_write)
 		return 0xffffffff;
-	}
 	uae_u32 v = sermap2->read_offset;
-	if (v == sermap2->write_offset) {
+	if (v == sermap2->write_offset)
 		return 0xffffffff;
-	}
 	const uae_u32 data = sermap2->data[v];
 	v++;
 	v &= (SERMAP_SIZE - 1);
@@ -147,7 +154,11 @@ void shmem_serial_delete()
 	sermap_deactivate();
 	sermap_master = false;
 	if (sermap_data) {
+        #ifdef __AROS__
+        FreeMem(sermap_data, sizeof(serma_buffer) * 2);
+        #else
 		munmap(sermap_data, sizeof(sermap_buffer) * 2);
+        #endif
 	}
 	if (sermap_handle) {
 		shm_unlink(SER_MEMORY_MAPPING);
@@ -411,15 +422,14 @@ void closeser ()
 #endif
 }
 
-#define SERDATR_IRQACK 2
-#define SERDATR_READ 1
-
 static void serial_rx_irq()
 {
 	int delay = 9;
 	// Data in receive buffer
-	data_in_serdatr = SERDATR_READ | SERDATR_IRQACK;
-	data_in_serdatr_evt = get_cycles() + delay * CYCLE_UNIT;
+	if (!data_in_serdatr) {
+		data_in_serdatr = 1;
+		data_in_serdatr_evt = get_cycles() + delay * CYCLE_UNIT;
+	}
 	if (ser_accurate) {
 		INTREQ_INT(11, delay);
 	} else {
@@ -463,8 +473,11 @@ static void receive_next_buffered()
 
 void serial_rethink()
 {
-	if (data_in_serdatr == SERDATR_READ) {
-		int sdr = 1;
+	if (data_in_serdatr) {
+		int sdr = data_in_serdatr;
+		if (ser_accurate && get_cycles() > data_in_serdatr_evt) {
+			sdr = 0;
+		}
 		if (serloop_enabled) {
 			sdr = 0;
 		}
@@ -474,14 +487,11 @@ void serial_rethink()
 		if (safe_receive) {
 			sdr = 1;
 		}
-		if (ser_accurate && get_cycles() <= data_in_serdatr_evt) {
-			sdr = 0;
-		}
-		// We get here if program cleared RBF bit but didn't yet read SERDATR
-		// Without this hack data can be lost when using fast emulation modes
+		// RBF bit is not "sticky" but without it data can be lost when using fast emulation modes
 		// and physical serial port or internally emulated serial devices.
 		if (sdr && (intena & (1 << 11)) && (intena & (1 << 14)) && !(intreq & (1 << 11))) {
 			INTREQ_INT(11, 0);
+			sticky_receive_interrupt = true;
 		}
 	}
 }
@@ -626,28 +636,18 @@ int readseravail(bool* breakcond)
 	return 0;
 }
 
-static void maybesetoverrun(void)
-{
-	if ((data_in_serdatr & SERDATR_IRQACK) && serdatr_last_got > SERIAL_HSYNC_BEFORE_OVERFLOW) {
-#if SERIALDEBUG > 0
-		write_log(_T("SERIAL: OVERRUN\n"));
-#endif
-		flushser();
-		ovrun = true;
-		sticky_receive_interrupt = false;
-	}
-	serdatr_last_got = 0;
-}
-
 static bool canreceive()
 {
-	// don't replace data in SERDATR until interrupt is cleared and SERDATR is read in safe receive mode
+	// don't replace data in SERDATR until interrupt is cleared in safe receive mode
 	if (safe_receive) {
+		if (intreq & (1 << 11)) {
+			return false;
+		}
 		if (data_in_serdatr) {
 			return false;
 		}
 	}
-	if (!(data_in_serdatr & SERDATR_IRQACK)) {
+	if (!data_in_serdatr) {
 		return true;
 	}
 	if (currprefs.serial_direct) {
@@ -657,6 +657,14 @@ static bool canreceive()
 		return true;
 	}
 	if (serdatr_last_got > SERIAL_HSYNC_BEFORE_OVERFLOW) {
+#if SERIALDEBUG > 0
+		write_log(_T("SERIAL: OVERRUN\n"));
+#endif
+		flushser();
+		ovrun = true;
+		data_in_serdatr = 0;
+		serdatr_last_got = 0;
+		sticky_receive_interrupt = false;
 		return true;
 	}
 	return false;
@@ -671,7 +679,6 @@ static void checkreceive_enet()
 		return;
 	if (!enet_readseravail())
 		return;
-	maybesetoverrun();
 	if (!enet_readser(&recdata))
 		return;
 	serdatr = recdata & 0x1ff;
@@ -1012,7 +1019,6 @@ static void serdatcopy()
 	if (data_in_sershift || !data_in_serdat)
 		return;
 	serdatshift = serdat;
-	int sper = (serper & 0x7fff) + 1;
 	int bits = 8;
 	if ((serdatshift & 0xff80) == 0x80) {
 		bits = 7;
@@ -1055,10 +1061,9 @@ static void serdatcopy()
 		serdatshift_bits--;
 	}
 
-	data_in_serdat_delay = get_cycles() + CYCLE_UNIT;
-
-	// if someone uses serial port as some kind of timer...
+	// if someone uses serial port as some kind of timer..
 	if (ser_accurate) {
+		int sper = (serper & 0x7fff) + 1;
 		int per = sper * (serdatshift_bits + 1);
 
 		serper_tx_evt = get_cycles();
@@ -1094,19 +1099,16 @@ static void serdatcopy()
 		}
 
 		event2_newevent_x_replace(per, 0, sersend_ce);
-
-		checksend();
 	}
 	else {
 
 		if (serloop_enabled) {
 			sersend_serloop(0);
-		} else {
-			checksend();
-			sersend_end(0);
 		}
+
 	}
 
+	checksend();
 }
 
 void serial_hsynchandler ()
@@ -1196,23 +1198,16 @@ void serial_hsynchandler ()
 		}
 	}
 #endif
-	if (data_in_serdatr & SERDATR_IRQACK) {
+	if (data_in_serdatr)
 		serdatr_last_got++;
-	}
-	if (!ser_accurate) {
-		serial_period_transmit_cck_counter += maxhpos;
-		if (serial_period_transmit_cck_counter >= serial_period_transmit_ccks && serial_period_transmit_ccks) {
-			serial_period_transmit_cck_counter %= serial_period_transmit_ccks;
-			serial_period_transmit_cck_counter += maxhpos - 1;
-			checkshiftempty();
-		}
-	} else {
-		serial_period_transmit_cck_counter = 0;
+	serial_period_transmit_cck_counter += maxhpos;
+	if (serial_period_transmit_cck_counter >= serial_period_transmit_ccks) {
+		serial_period_transmit_cck_counter -= serial_period_transmit_ccks;
+		checkshiftempty();
 	}
 	serial_period_receive_cck_counter += maxhpos;
-	if (serial_period_receive_cck_counter >= serial_period_receive_ccks && serial_period_receive_ccks) {
-		serial_period_receive_cck_counter %= serial_period_receive_ccks;
-		serial_period_receive_cck_counter += maxhpos - 1;
+	if (serial_period_receive_cck_counter >= serial_period_receive_ccks) {
+		serial_period_receive_cck_counter -= serial_period_receive_ccks;
 		receive_next_buffered();
 		checkreceive_serial();
 		checkreceive_enet();
@@ -1313,7 +1308,7 @@ void SERPER(uae_u16 w)
 	int per = w;
 	if (per == 0)
 		per = 1;
-	per = (currprefs.ntscmode ? CHIPSET_CLOCK_NTSC : CHIPSET_CLOCK_PAL) / (per + 1);
+	per = 3546895 / (per + 1);
 	if (per <= 0)
 		per = 1;
 	int i = 0;
@@ -1327,6 +1322,9 @@ void SERPER(uae_u16 w)
 
 	serial_period_transmit_ccks = ((serper & 0x7fff) + 1) * (1 + 8 + ninebit + 1 - 1);
 	serial_period_receive_ccks = serial_period_transmit_ccks / 4;
+	if (serial_period_receive_ccks <= maxhpos) {
+		serial_period_receive_ccks = maxhpos;
+	}
 
 #if SERIALLOGGING > 0
 	serial_period_hsyncs = 1;
@@ -1342,7 +1340,7 @@ void SERPER(uae_u16 w)
 	}
 
 	if (!serloop_enabled || seriallog > 0) {
-		write_log(_T("SERIAL: period=%d/%d, baud=%d, hsyncs=%d, bits=%d, PC=%x\n"), w, serial_period_transmit_ccks, baud, serial_period_transmit_ccks / maxhpos, ninebit ? 9 : 8, M68K_GETPC);
+		write_log(_T("SERIAL: period=%d, baud=%d, hsyncs=%d, bits=%d, PC=%x\n"), w, baud, serial_period_transmit_ccks, ninebit ? 9 : 8, M68K_GETPC);
 	}
 
 	if (ninebit) {
@@ -1366,8 +1364,6 @@ void SERPER(uae_u16 w)
 	setbaud(baud, mbaud);
 #endif
 
-	flushqueue();
-
 	// mid transmit period change
 	if ((serloop_enabled || serempty_enabled) && ser_accurate) {
 		evt_t c = get_cycles();
@@ -1384,21 +1380,6 @@ void SERPER(uae_u16 w)
 				serper_tx_evt = c;
 				event2_newevent_x_replace_exists(serper_tx_cycles, 0, sersend_end);
 			}
-		}
-	}
-}
-
-static void flushqueue(void)
-{
-#ifdef SERIAL_MAP
-	if (sermap2 && sermap_enabled) {
-		while (shmem_serial_receive() != 0xffffffff);
-	}
-#endif
-	for (;;) {
-		bool breakcond;
-		if (!readseravail(&breakcond)) {
-			break;
 		}
 	}
 }
@@ -1453,7 +1434,7 @@ uae_u16 SERDATR()
 	if (!data_in_sershift && (serdatr & 0x2000)) {
 		serdatr |= 0x1000; // TSRE (Transmit shift register empty)
 	}
-	if (data_in_serdatr & SERDATR_IRQACK) {
+	if (data_in_serdatr) {
 		serdatr |= 0x4000; // RBF (Receive buffer full)
 	}
 	if (ovrun) {
@@ -1484,10 +1465,11 @@ uae_u16 SERDATR()
 #if SERIALDEBUG > 2
 	write_log(_T("SERIAL: read 0x%04x (%c) %x\n"), serdatr, dochar(serdatr), M68K_GETPC);
 #endif
-	data_in_serdatr &= ~SERDATR_READ;
-	if (!data_in_serdatr) {
-		// interrupt was previously cleared but SERDATR was not read.
-		// Clear it now when SERDATR was read.
+	data_in_serdatr = 0;
+	// interrupt was previously cleared but SERDATR was not read.
+	// Clear it now when SERDATR was read.
+	if (sticky_receive_interrupt) {
+		sticky_receive_interrupt = false;
 		INTREQ_f(1 << 11);
 	}
 	return serdatr;
@@ -1501,14 +1483,12 @@ void SERDAT(uae_u16 w)
 		SERDAT_send(w);
 	}
 }
-
+#ifdef SERIAL_PORT
 void serial_rbf_change(bool set)
 {
 	ovrun = set;
-	if (!set) {
-		data_in_serdatr &= ~SERDATR_IRQACK;
-	}
 }
+#endif
 
 void serial_dtr_on()
 {
@@ -2170,3 +2150,4 @@ int enet_readser(uae_u16* data)
 	return 1;
 }
 #endif
+#endif //IFNDEF AMIBERRY_SERIAL

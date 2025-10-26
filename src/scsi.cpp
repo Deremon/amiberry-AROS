@@ -20,6 +20,7 @@
 #include "autoconf.h"
 #include "rommgr.h"
 #include "newcpu.h"
+#include "custom.h"
 #include "gayle.h"
 #include "cia.h"
 #include "devices.h"

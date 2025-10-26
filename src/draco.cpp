@@ -9,6 +9,7 @@
 
 #ifdef WITH_DRACO
 #include "options.h"
+#include "uae.h"
 #include "memory.h"
 #include "newcpu.h"
 #include "devices.h"
@@ -18,6 +19,7 @@
 #include "ncr_scsi.h"
 #include "draco.h"
 #include "zfile.h"
+#include "keybuf.h"
 #include "rommgr.h"
 #include "disk.h"
 

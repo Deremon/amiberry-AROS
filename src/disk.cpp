@@ -33,6 +33,8 @@ int disk_debug_track = -1;
 #include "gui.h"
 #include "zfile.h"
 #include "newcpu.h"
+#include "osemu.h"
+#include "execlib.h"
 #include "savestate.h"
 #include "cia.h"
 #include "debug.h"
@@ -1415,9 +1417,7 @@ static int drive_insert (drive *drv, struct uae_prefs *p, int dnum, const TCHAR 
 		_tcsncpy (changed_prefs.floppyslots[dnum].df, fname_in, 255);
 		changed_prefs.floppyslots[dnum].df[255] = 0;
 		changed_prefs.floppyslots[dnum].forcedwriteprotect = forcedwriteprotect;
-		if (drv->newname != fname_in) {
-			_tcscpy(drv->newname, fname_in);
-		}
+		_tcscpy (drv->newname, fname_in);
 		drv->newnamewriteprotected = forcedwriteprotect;
 		gui_filename (dnum, outname);
 	}
@@ -3378,6 +3378,7 @@ void disk_insert_force (int num, const TCHAR *name, bool forcedwriteprotect)
 	disk_insert_2 (num, name, 1, forcedwriteprotect);
 }
 
+#ifdef FLOPPYBRIDGE
 static void floppybridge_getsetprofile(int i)
 {
 	if (currprefs.floppyslots[i].dfxsubtype == 0 || currprefs.floppyslots[i].dfxsubtypeid[0] == 0) {
@@ -3395,6 +3396,7 @@ static void floppybridge_getsetprofile(int i)
 		}
 	}
 }
+#endif
 
 static void DISK_check_change (void)
 {
@@ -4296,15 +4298,10 @@ static int doreaddma(void)
 
 static void wordsync_detected(bool startup)
 {
-	// wordsync interrupt is edge triggered
 	if (!dsksync_on) {
-		// wordsync interrupt is inhibited if DSKLEN write bit is set
-		if (!(dsklen & 0x4000)) {
-			INTREQ_INT(12, 0);
-		}
+		INTREQ_INT(12, 0);
 		dsksync_on = true;
 	}
-	// wordsync enables disk read if DMA is already active
 	if (dskdmaen != DSKDMA_OFF) {
 		int prev_dma_enabled = dma_enable;
 		if (!startup) {
@@ -4330,7 +4327,6 @@ static void wordsync_detected(bool startup)
 				dumpdisk(_T("SYNC"));
 		}
 	}
-	// wordsync match resets read shifter
 	if (adkcon & 0x0400) { // WORDSYNC
 		bitoffset = 15;
 	}
@@ -4864,6 +4860,9 @@ static void DSKLEN_2(uae_u16 v, int hpos)
 	dsklen2 = dsklen = v;
 	dsklength2 = dsklength = dsklen & 0x3fff;
 
+	if ((v & 0x8000) && !(prevlen & 0x8000)) {
+		//bitoffset = 15;
+	}
 	if ((v & 0x8000) && (prevlen & 0x8000)) {
 		if (dskdmaen == DSKDMA_READ && !(v & 0x4000)) {
 			// update only currently active DMA length, don't change DMA state
@@ -5152,8 +5151,16 @@ void DSKLEN(uae_u16 v, int hpos)
 	DISK_update_predict();
 }
 
-void DISK_update_adkcon(int hpos, uae_u16 v)
+void DISK_update_adkcon (int hpos, uae_u16 v)
 {
+	uae_u16 vold = adkcon;
+	uae_u16 vnew = adkcon;
+	if (v & 0x8000)
+		 vnew |= v & 0x7FFF;
+	else
+		vnew &= ~v;
+	if ((vnew & 0x400) && !(vold & 0x400))
+		bitoffset = 0;
 }
 
 void DSKSYNC(int hpos, uae_u16 v)
@@ -5195,11 +5202,11 @@ uae_u16 disk_dmal(void)
 	return dmal;
 }
 
-uaecptr *disk_getpt(void)
+uaecptr disk_getpt(void)
 {
 	uaecptr pt = dskpt;
-	dskpt &= ~1;
-	return &dskpt;
+	dskpt += 2;
+	return pt & ~1;
 }
 
 void DSKPTH(uae_u16 v)
@@ -5306,6 +5313,7 @@ void floppybridge_reload_profiles(void)
 		FloppyBridgeAPI::getAllProfiles(bridgeprofiles);
 	}
 }
+
 
 static void floppybridge_init3(void)
 {

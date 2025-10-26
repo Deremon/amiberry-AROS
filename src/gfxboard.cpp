@@ -55,6 +55,7 @@ static bool memlogw = true;
 #include "rommgr.h"
 #include "zfile.h"
 #include "gfxboard.h"
+#include "rommgr.h"
 #include "xwin.h"
 #include "devices.h"
 #include "gfxfilter.h"
@@ -69,7 +70,6 @@ static bool memlogw = true;
 #ifdef WITH_DRACO
 #include "draco.h"
 #endif
-#include "autoconf.h"
 
 #ifdef USE_PCEM
 extern void put_io_pcem(uaecptr, uae_u32, int);
@@ -163,7 +163,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_A2410,
 		_T("A2410 [Zorro II]"), _T("Commodore"), _T("A2410"),
 		1030, 0, 0, 0,
-		0x00000000, 0x00200000, 0x00200000, 0x10000, 0, 2, 2, false, false,
+		0x00000000, 0x00200000, 0x00200000, 0x10000, 0, 0, 2, false, false,
 		0, 0xc1, &a2410_func
 	},
 #ifdef USE_PCEM
@@ -234,7 +234,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_PERMEDIA2_PCI,
 		_T("BlizzardVision/CyberVision PPC (Permedia2) [PCI]"), _T("3DLabs"), _T("PERMEDIA2_PCI"),
 		0, 0, 0, 0,
-		0x00000000, 0x00800000, 0x00800000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00800000, 0x00800000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &permedia2_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
@@ -285,7 +285,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_ALTAIS_Z3,
 		_T("Altais [DracoBus]"), _T("MacroSystem"), _T("Altais"),
 		18260, 19, 0, 0,
-		0x00000000, 0x00400000, 0x00400000, 0x00400000, 0, BOARD_NONAUTOCONFIG_BEFORE, 3, false, true,
+		0x00000000, 0x00400000, 0x00400000, 0x00400000, 0, 4, 3, false, false,
 		0, 0, NULL, &ncr_retina_z3_device, 0, GFXBOARD_BUSTYPE_DRACO
 	},
 	{
@@ -322,7 +322,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_EGS_110_24,
 		_T("EGS 110/24 [GVP local bus]"), _T("GVP"), _T("EGS_110_24"),
 		2193, 0, 0, 0,
-		0x00000000, 0x00400000, 0x00800000, 0x00800000, 0, BOARD_NONAUTOCONFIG_BEFORE, 2, false, false,
+		0x00000000, 0x00400000, 0x00800000, 0x00800000, 0, 4, 2, false, false,
 		0, 0, NULL, &inmos_egs_110_24_device
 	},
 	{
@@ -393,7 +393,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_VOODOO3_PCI,
 		_T("Voodoo 3 3000 [PCI]"), _T("3dfx"), _T("V3_3000"),
 		0, 0, 0, 0,
-		0x00000000, 0x01000000, 0x01000000, 0x01000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x01000000, 0x01000000, 0x01000000, 0, 0, -1, false, false,
 		ROMTYPE_VOODOO3,
 		0, NULL, &voodoo_3_3000_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
@@ -401,42 +401,42 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_S3VIRGE_PCI,
 		_T("Virge [PCI]"), _T("S3"), _T("S3VIRGE_PCI"),
 		0, 0, 0, 0,
-		0x00000000, 0x00400000, 0x00400000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00400000, 0x00400000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &s3_virge_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
 		GFXBOARD_ID_S3TRIO64_PCI,
 		_T("Trio64 [PCI]"), _T("S3"), _T("S3TRIO64_PCI"),
 		0, 0, 0, 0,
-		0x00000000, 0x00200000, 0x00400000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00200000, 0x00400000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &s3_trio64_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
 		GFXBOARD_ID_MATROX_MILLENNIUM_PCI,
 		_T("Matrox Millennium [PCI]"), _T("Matrox"), _T("Matrox_Millennium"),
 		0, 0, 0, 0,
-		0x00000000, 0x00200000, 0x00400000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00200000, 0x00400000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &millennium_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
 		GFXBOARD_ID_MATROX_MILLENNIUM_II_PCI,
 		_T("Matrox Millennium II [PCI]"), _T("Matrox"), _T("Matrox_Millennium_II"),
 		0, 0, 0, 0,
-		0x00000000, 0x00200000, 0x01000000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00200000, 0x01000000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &millennium_ii_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
 		GFXBOARD_ID_MATROX_MYSTIQUE_PCI,
 		_T("Matrox Mystique [PCI]"), _T("Matrox"), _T("Matrox_Mystique"),
 		0, 0, 0, 0,
-		0x00000000, 0x00200000, 0x00800000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00200000, 0x00800000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &mystique_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 	{
 		GFXBOARD_ID_MATROX_MYSTIQUE220_PCI,
 		_T("Matrox Mystique 220 [PCI]"), _T("Matrox"), _T("Matrox_Mystique220"),
 		0, 0, 0, 0,
-		0x00000000, 0x00200000, 0x00800000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00200000, 0x00800000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &mystique_220_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 #endif
@@ -445,7 +445,7 @@ static const struct gfxboard boards[] =
 		GFXBOARD_ID_GD5446_PCI,
 		_T("GD5446 [PCI]"), _T("Cirrus Logic"), _T("GD5446_PCI"),
 		0, 0, 0, 0,
-		0x00000000, 0x00400000, 0x00400000, 0x10000000, 0, BOARD_PCI, -1, false, false,
+		0x00000000, 0x00400000, 0x00400000, 0x10000000, 0, 0, -1, false, false,
 		0, 0, NULL, &gd5446_device, 0, GFXBOARD_BUSTYPE_PCI
 	},
 #endif
@@ -591,7 +591,6 @@ static struct rtggfxboard rtggfxboards[MAX_RTG_BOARDS];
 static struct rtggfxboard *only_gfx_board;
 static int rtg_visible[MAX_AMIGADISPLAYS];
 static int rtg_initial[MAX_AMIGADISPLAYS];
-static int initial_done;
 static int total_active_gfx_boards;
 static int vram_ram_a8;
 static DisplaySurface fakesurface;
@@ -1033,21 +1032,6 @@ static void gfxboard_hsync_handler(void)
 #endif
 }
 
-static void init_initial(struct rtggfxboard *gb)
-{
-	if (initial_done) {
-		return;
-	}
-	if (gb->vram && gb->rbc->initial_active && rtg_visible[gb->monitor_id] < 0 && rtg_initial[gb->monitor_id] >= 0) {
-		int init = rtg_initial[gb->monitor_id];
-		if (gfxboard_toggle(gb->monitor_id, 0, 0) >= 0) {
-			initial_done = 1;
-		} else {
-			rtg_initial[gb->monitor_id] = init;
-		}
-	}
-}
-
 static void reinit_vram(struct rtggfxboard *gb, uaecptr vram, bool direct)
 {
 	if (vram == gb->gfxmem_bank->start)
@@ -1156,10 +1140,14 @@ static void init_board (struct rtggfxboard *gb)
 	gb->vga.cirrus_mmio_io.data = gb;
 	gb->gfxsurface.data = gb;
 	gb->fakesurface.data = gb;
+#ifdef USE_PCEM //farox
 	vga_common_init(&gb->vga.vga);
+#endif
 	gb->vga.vga.con = (void*)gb;
 	if (chiptype) {
+#ifdef USE_PCEM //farox
 		cirrus_init_common(&gb->vga, chiptype, 0, NULL, NULL, gb->board->manufacturer == 0, gb->board->romtype == ROMTYPE_x86_VGA);
+#endif
 	}
 	gb->pcemdev = gb->board->pcemdev;
 	gb->pcem_pci_configured = false;
@@ -1468,19 +1456,6 @@ bool gfxboard_set(int monid, bool rtg)
 	return r;
 }
 
-int gfxboard_monitor_visible(int monid)
-{
-	if (gfxboard_isgfxboardscreen(monid)) {
-		return 1;
-	}
-	if (currprefs.monitoremu && currprefs.monitoremu_mon == monid) {
-		if (rtg_visible[monid] > 0) {
-			return -1;
-		}
-	}
-	return 0;
-}
-
 void gfxboard_rtg_disable(int monid, int index)
 {
 	if (monid > 0)
@@ -1767,8 +1742,6 @@ void gfxboard_vsync_handler(bool full_redraw_required, bool redraw_required)
 		struct amigadisplay *ad = &adisplays[gb->monitor_id];
 		struct picasso96_state_struct *state = &picasso96_state[gb->monitor_id];
 
-		init_initial(gb);
-
 		if (gb->func) {
 
 			if (gb->userdata) {
@@ -1817,14 +1790,13 @@ void gfxboard_vsync_handler(bool full_redraw_required, bool redraw_required)
 					}
 				}
 #endif
-				if (((!gb->board->hasswitcher && gb->rbc->autoswitch) || gb->board->id == GFXBOARD_ID_ALTAIS_Z3) && gb->vram) {
+				if (!gb->board->hasswitcher && gb->vram) {
 					bool svga_on(void *p);
 					bool on = svga_on(gb->pcemobject2);
 					set_monswitch(gb, on);
 				}
 #endif
 			}
-
 			gfxboard_unlock(gb);
 
 			if (gb->monswitch_keep_trying) {
@@ -3591,6 +3563,7 @@ static void gfxboard_free_board(struct rtggfxboard *gb)
 #endif
 			gb->pcemobject = NULL;
 			gb->pcemobject2 = NULL;
+
 		}
 	}
 	if (gb->vram && gb->gfxmem_bank->baseaddr) {
@@ -3658,23 +3631,6 @@ void gfxboard_reset (void)
 	for (int i = 0; i < MAX_AMIGADISPLAYS; i++) {
 		rtg_visible[i] = -1;
 		rtg_initial[i] = -1;
-	}
-}
-
-void gfxboard_reset_init(void)
-{
-	initial_done = 1;
-	for (int i = 0; i < MAX_RTG_BOARDS; i++) {
-		struct rtgboardconfig *rbc = &currprefs.rtgboards[i];
-		if (rbc->initial_active) {
-			rtg_initial[rbc->monitor_id] = i;
-			if (rbc->monitor_id == 0) {
-				struct amigadisplay *ad = &adisplays[0];
-				ad->picasso_on = 1;
-				ad->picasso_requested_on = 1;
-				initial_done = 0;
-			}
-		}
 	}
 }
 
@@ -4077,6 +4033,7 @@ static void pci_change_config(struct pci_board_state *pci)
 	struct romconfig *rc = get_device_romconfig(&currprefs, gb->board->romtype, 0);
 	if (gb->rbc->rtgmem_type == GFXBOARD_ID_VOODOO3_PCI) {
 		if (pci->memory_map_active) {
+			#ifdef WITH_PCI
 			struct pci_bridge *pcib = pci->bridge;
 			// direct access, bypass PCI emulation redirection for performance reasons
 			if (rc && (rc->device_settings & 1) && pci_validate_address(pci->bar[1] + pcib->memory_start_offset[pcib->windowindex], 0x02000000, false)) {
@@ -4090,9 +4047,11 @@ static void pci_change_config(struct pci_board_state *pci)
 			} else {
 				reinit_vram(gb, pci->bar[1] + pcib->memory_start_offset[pcib->windowindex], false);
 			}
+			#endif
 		}
 	} else if (gb->rbc->rtgmem_type == GFXBOARD_ID_VOODOO5_PCI) {
 		if (pci->memory_map_active) {
+			#ifdef WITH_PCI
 			struct pci_bridge *pcib = pci->bridge;
 			// direct access, bypass PCI emulation redirection for performance reasons
 			if (pci_validate_address(pci->bar[1] + pcib->memory_start_offset[0], gb->rbc->rtgmem_size, false)) {
@@ -4101,6 +4060,7 @@ static void pci_change_config(struct pci_board_state *pci)
 			} else {
 				reinit_vram(gb, pci->bar[1] + pcib->memory_start_offset[pcib->windowindex], false);
 			}
+			#endif
 		}
 	} else if (gb->rbc->rtgmem_type == GFXBOARD_ID_S3VIRGE_PCI ||
 		gb->rbc->rtgmem_type == GFXBOARD_ID_S3TRIO64_PCI ||
@@ -4868,15 +4828,6 @@ int gfxboard_get_configtype(struct rtgboardconfig *rbc)
 	return gb->board->configtype;
 }
 
-bool gfxboard_get_switcher(struct rtgboardconfig *rbc)
-{
-	int type = rbc->rtgmem_type;
-	if (type < GFXBOARD_HARDWARE)
-		return true;
-	const struct gfxboard *b = find_board(type);
-	return b->hasswitcher;
-}
-
 bool gfxboard_need_byteswap (struct rtgboardconfig *rbc)
 {
 	int type = rbc->rtgmem_type;
@@ -5234,6 +5185,7 @@ bool gfxboard_init_memory (struct autoconfig_info *aci)
 		gb->configured_mem = 1;
 		gb->configured_regs = 1;
 		gb->lfbbar = 1;
+#ifdef WITH_PCI
 		struct pci_bridge *b = pci_bridge_get();
 		if (b) {
 			if (gb->rbc->rtgmem_type == GFXBOARD_ID_VOODOO3_PCI || gb->rbc->rtgmem_type == GFXBOARD_ID_VOODOO5_PCI) {
@@ -5262,6 +5214,7 @@ bool gfxboard_init_memory (struct autoconfig_info *aci)
 				gb->lfbbar = 0;
 			}
 		}
+#endif
 		gb->gfxboard_intena = 1;
 		return true;
 	}
@@ -6258,8 +6211,7 @@ static uae_u8 get_io_merlin(struct rtggfxboard *gb, uae_u32 addr)
 				uae_u8 aa = a >> 3;
 				uae_u8 d = 0xff;
 				if ((a & 7) == 3) {
-					uae_u8 ser[4] = { uae_u8(gb->extradata[0] >> 24), uae_u8(gb->extradata[0] >> 16), uae_u8(gb->extradata[0] >> 8), uae_u8(gb->extradata[0] >> 0) };
-					if (aa == 0x7c) {
+					uae_u8 ser[4] = { uae_u8(gb->extradata[0] >> 24), uae_u8(gb->extradata[0] >> 16), uae_u8(gb->extradata[0] >> 8), uae_u8(gb->extradata[0] >> 0) };					if (aa == 0x7c) {
 						d = ser[0];
 					} else if (aa == 0x7d) {
 						d = ser[1];

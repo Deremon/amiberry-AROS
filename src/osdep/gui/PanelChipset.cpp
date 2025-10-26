@@ -10,8 +10,6 @@
 #include "rommgr.h"
 #include "specialmonitors.h"
 
-extern int multithread_enabled;
-
 static gcn::Window* grpChipset;
 static gcn::RadioButton* optOCS;
 static gcn::RadioButton* optECSAgnus;
@@ -24,6 +22,7 @@ static gcn::CheckBox* chkMemoryCycleExact;
 static gcn::Label* lblChipset;
 static gcn::DropDown* cboChipset;
 static gcn::Window* grpOptions;
+static gcn::CheckBox* chkSubpixelEmu;
 static gcn::CheckBox* chkBlitImmed;
 static gcn::CheckBox* chkBlitWait;
 static gcn::CheckBox* chkMultithreadedDrawing;
@@ -87,10 +86,10 @@ public:
 		{
 			changed_prefs.keyboard_mode = nn - 1;
 		}
+		changed_prefs.chipset_hr = chkSubpixelEmu->isSelected();
 		changed_prefs.immediate_blits = chkBlitImmed->isSelected();
 		changed_prefs.waiting_blits = chkBlitWait->isSelected();
 		changed_prefs.monitoremu = cboSpecialMonitors->getSelected();
-		changed_prefs.monitoremu_mon = 0;
 
 		auto n2 = chkMemoryCycleExact->isSelected();
 		auto n1 = chkCycleExact->isSelected();
@@ -170,7 +169,7 @@ public:
 			built_in_chipset_prefs(&changed_prefs);
 		}
 
-		multithread_enabled = chkMultithreadedDrawing->isSelected();
+		changed_prefs.multithreaded_drawing = chkMultithreadedDrawing->isSelected();
 
 		RefreshPanelCPU();
 		RefreshPanelQuickstart();
@@ -321,6 +320,13 @@ void InitPanelChipset(const struct config_category& category)
 
 	category.panel->add(grpChipset);
 
+	chkSubpixelEmu = new gcn::CheckBox("Subpixel Display emulation");
+	chkSubpixelEmu->setId("chkSubpixelEmu");
+	chkSubpixelEmu->setBaseColor(gui_base_color);
+	chkSubpixelEmu->setBackgroundColor(gui_background_color);
+	chkSubpixelEmu->setForegroundColor(gui_foreground_color);
+	chkSubpixelEmu->addActionListener(chipsetActionListener);
+
 	chkBlitImmed = new gcn::CheckBox("Immediate Blitter");
 	chkBlitImmed->setId("chkBlitImmed");
 	chkBlitImmed->setBaseColor(gui_base_color);
@@ -355,14 +361,15 @@ void InitPanelChipset(const struct config_category& category)
 
 	grpOptions = new gcn::Window("Options");
 	grpOptions->setPosition(DISTANCE_BORDER + grpChipset->getWidth() + DISTANCE_BORDER, DISTANCE_BORDER);
-	grpOptions->add(chkBlitImmed, 10, 10);
-	grpOptions->add(chkBlitWait, 10, 40);
-	grpOptions->add(chkMultithreadedDrawing, 10, 70);
-	grpOptions->add(lblSpecialMonitors, 10, 100);
-	grpOptions->add(cboSpecialMonitors, 10, 130);
+	grpOptions->add(chkSubpixelEmu, 10, 10);
+	grpOptions->add(chkBlitImmed, 10, 40);
+	grpOptions->add(chkBlitWait, 10, 70);
+	grpOptions->add(chkMultithreadedDrawing, 10, 100);
+	grpOptions->add(lblSpecialMonitors, 10, 130);
+	grpOptions->add(cboSpecialMonitors, 10, 170);
 
 	grpOptions->setMovable(false);
-	grpOptions->setSize(chkBlitImmed->getWidth() + DISTANCE_BORDER + DISTANCE_NEXT_X * 6, TITLEBAR_HEIGHT + cboSpecialMonitors->getY() + cboSpecialMonitors->getHeight() + DISTANCE_NEXT_Y * 6);
+	grpOptions->setSize(chkSubpixelEmu->getWidth() + DISTANCE_BORDER + DISTANCE_NEXT_X, TITLEBAR_HEIGHT + cboSpecialMonitors->getY() + cboSpecialMonitors->getHeight() + DISTANCE_NEXT_Y * 6);
 	grpOptions->setTitleBarHeight(TITLEBAR_HEIGHT);
 	grpOptions->setBaseColor(gui_base_color);
 	grpOptions->setForegroundColor(gui_foreground_color);
@@ -457,6 +464,7 @@ void ExitPanelChipset()
 	delete grpChipset;
 	delete chipsetActionListener;
 
+	delete chkSubpixelEmu;
 	delete chkBlitImmed;
 	delete chkBlitWait;
 	delete chkMultithreadedDrawing;
@@ -521,9 +529,10 @@ void RefreshPanelChipset()
 	chkNTSC->setSelected(changed_prefs.ntscmode);
 	chkKeyboardNKRO->setSelected(changed_prefs.keyboard_nkro);
 	cboKeyboardOptions->setSelected(changed_prefs.keyboard_mode + 1);
+	chkSubpixelEmu->setSelected(changed_prefs.chipset_hr);
 	chkBlitImmed->setSelected(changed_prefs.immediate_blits);
 	chkBlitWait->setSelected(changed_prefs.waiting_blits);
-	chkMultithreadedDrawing->setSelected(multithread_enabled);
+	chkMultithreadedDrawing->setSelected(changed_prefs.multithreaded_drawing);
 	cboSpecialMonitors->setSelected(changed_prefs.monitoremu);
 
 	if (changed_prefs.collision_level == 0)

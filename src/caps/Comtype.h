@@ -7,7 +7,9 @@ typedef char *PCHAR;
 typedef uae_u8 UBYTE;
 typedef uae_u16 UWORD;
 typedef uae_u32 UDWORD;
+#ifndef __AROS__
 typedef uae_u64 UQUAD;
+#endif
 typedef uae_s8 SBYTE;
 typedef uae_s16 SWORD;
 typedef uae_s32 SDWORD;

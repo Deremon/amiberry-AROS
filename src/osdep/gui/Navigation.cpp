@@ -152,11 +152,12 @@ static NavigationMap nav_map[] =
 	{ "optFullECS", "Chipset", "chkNTSC", "optECSAgnus", "chkCycleExact" },
 	{ "chkCycleExact", "Chipset", "chkMultithreadedDrawing", "optFullECS", "chkMemoryCycleExact" },
 	{ "chkMemoryCycleExact", "Chipset", "chkMultithreadedDrawing", "chkCycleExact", "cboChipset" },
-	{ "optAGA", "optOCS", "chkBlitImmed", "optCollFull", "optECSDenise" },
+	{ "optAGA", "optOCS", "chkSubpixelEmu", "optCollFull", "optECSDenise" },
 	{ "optECSDenise", "optECSAgnus", "optBlitImmed", "optAGA", "chkNTSC" },
 	{ "chkNTSC", "Chipset", "chkBlitWait", "optECSDenise", "chkCycleExact" },
 	{ "cboChipset", "chkMemoryCycleExact", "cboSpecialMonitors", "", "" },
-	{ "chkBlitImmed", "optAGA", "Chipset", "optCollFull", "chkBlitWait" },
+	{ "chkSubpixelEmu", "optAGA", "Chipset", "optCollFull", "chkBlitImmed" },
+	{ "chkBlitImmed", "optAGA", "Chipset", "chkSubpixelEmu", "chkBlitWait" },
 	{ "chkBlitWait", "chkNTSC", "Chipset", "chkBlitImmed", "chkMultithreadedDrawing" },
 	{ "chkMultithreadedDrawing", "chkCycleExact", "Chipset", "chkBlitWait", "cboSpecialMonitors" },
 	{ "cboSpecialMonitors", "cboChipset", "cboKeyboardOptions", "", "" },
@@ -167,7 +168,7 @@ static NavigationMap nav_map[] =
 	{ "optCollNone", "Chipset", "optCollPlayfield", "chkKeyboardNKRO", "optCollSprites" },
 	{ "optCollSprites", "Chipset", "optCollFull", "optCollNone", "optOCS" },
 	{ "optCollPlayfield", "optCollNone", "Chipset", "optCollSprites", "optCollFull" },
-	{ "optCollFull", "optCollSprites", "Chipset", "optCollPlayfield", "chkBlitImmed" },
+	{ "optCollFull", "optCollSprites", "Chipset", "optCollPlayfield", "chkSubpixelEmu" },
 
 	//  active            move left         move right        move up           move down
 	// PanelROM
@@ -344,7 +345,7 @@ static NavigationMap nav_map[] =
 
 	//  active            move left           move right          move up           move down
 	// PanelInput
-	{ "cboPort0", "Input", "Input", "chkSwapEndPgUp", "cboPort0Autofire" },
+	{ "cboPort0", "Input", "Input", "chkSwapBackslashF11", "cboPort0Autofire" },
 	{ "cboPort0Autofire", "Input", "cboPort0mode", "cboPort0", "cboPort1" },
 	{ "cboPort0mode", "cboPort0Autofire", "cmdRemap0", "cboPort0", "cboPort1" },
 	{ "cmdRemap0", "cboPort0mode", "Input", "cboPort0", "cboPort1" },
@@ -369,8 +370,7 @@ static NavigationMap nav_map[] =
 	{ "optBoth", "Input", "optNative", "chkMouseHack", "chkSwapBackslashF11" },
 	{ "optNative", "optBoth", "optHost", "chkMouseHack", "chkSwapBackslashF11" },
 	{ "optHost", "optNative", "", "chkMouseHack", "chkSwapBackslashF11" },
-	{ "chkSwapBackslashF11", "Input", "Input", "optBoth", "chkSwapEndPgUp" },
-	{ "chkSwapEndPgUp", "Input", "Input", "chkSwapBackslashF11", "cboPort0" },
+	{ "chkSwapBackslashF11", "Input", "Input", "optBoth", "cboPort0" },
 
 	// active		move left		move right			move up			move down
 	// PanelIO

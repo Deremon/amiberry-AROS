@@ -10,6 +10,8 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
+#include "newcpu.h"
 #include "traps.h"
 #include "autoconf.h"
 #include "execlib.h"

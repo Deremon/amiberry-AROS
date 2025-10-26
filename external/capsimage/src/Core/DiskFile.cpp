@@ -328,7 +328,12 @@ int CDiskFile::FindFile(char *result, const char *filename, const char *filter)
 				pathbuf[pathlen] = 0;
 				dirpath = pathbuf;
 			} else
+
+#ifdef __AROS__ //temporary fs fix
+				dirpath = "";
+#else
 				dirpath = ".";
+#endif
 
 			// open the selected path
 			DIR *pdir = opendir(dirpath);

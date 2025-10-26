@@ -23,7 +23,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-
+#ifndef __AROS__
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "options.h"
@@ -994,3 +994,4 @@ void signal_term(int signum, siginfo_t* info, void* ptr)
 	SDL_Quit();
 	exit(1);
 }
+#endif

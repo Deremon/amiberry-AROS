@@ -52,6 +52,7 @@
 #include "options.h"
 #include "memory.h"
 #include "zfile.h"
+#include "ar.h"
 #include "autoconf.h"
 #include "custom.h"
 #include "newcpu.h"
@@ -62,6 +63,8 @@
 #include "filesys.h"
 #include "inputrecord.h"
 #include "disk.h"
+#include "threaddep/thread.h"
+#include "a2091.h"
 #include "devices.h"
 #include "fsdb.h"
 #include "gfxboard.h"
@@ -700,10 +703,8 @@ void restore_state (const TCHAR *filename)
 			end = restore_custom_sprite (5, chunk);
 		else if (!_tcscmp (name, _T("SPR6")))
 			end = restore_custom_sprite (6, chunk);
-		else if (!_tcscmp(name, _T("SPR7")))
-			end = restore_custom_sprite(7, chunk);
-		else if (!_tcscmp(name, _T("BPLX")))
-			end = restore_custom_bpl(chunk);
+		else if (!_tcscmp (name, _T("SPR7")))
+			end = restore_custom_sprite (7, chunk);
 		else if (!_tcscmp (name, _T("CIAA")))
 			end = restore_cia (0, chunk);
 		else if (!_tcscmp (name, _T("CIAB")))
@@ -750,12 +751,14 @@ void restore_state (const TCHAR *filename)
 			end = restore_disk2 (3, chunk);
 		else if (!_tcscmp (name, _T("KEYB")))
 			end = restore_keyboard (chunk);
+#ifdef WITH_KEYMCU
 		else if (!_tcscmp (name, _T("KBM1")))
 			end = restore_kbmcu(chunk);
 		else if (!_tcscmp (name, _T("KBM2")))
 			end = restore_kbmcu2(chunk);
 		else if (!_tcscmp (name, _T("KBM3")))
 			end = restore_kbmcu3(chunk);
+#endif
 #ifdef AUTOCONFIG
 		else if (!_tcscmp (name, _T("EXPA")))
 			end = restore_expansion (chunk);
@@ -898,7 +901,7 @@ bool savestate_restore_finish(void)
 	restore_debug_memwatch_finish();
 #endif
 	savestate_state = 0;
-	init_hz();
+	init_hz_normal();
 	audio_activate();
 	return true;
 }
@@ -1061,11 +1064,6 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 		xfree(dst);
 	}
 
-	dst = save_custom_bpl(&len, NULL);
-	if (dst) {
-		save_chunk(f, dst, len, _T("BPLX"), 0);
-		xfree(dst);
-	}
 	_tcscpy (name, _T("SPRx"));
 	for (i = 0; i < 8; i++) {
 		dst = save_custom_sprite (i, &len, 0);
@@ -1093,7 +1091,7 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 	dst = save_keyboard (&len, NULL);
 	save_chunk (f, dst, len, _T("KEYB"), 0);
 	xfree (dst);
-
+#ifdef WITH_KEYMCU
 	dst = save_kbmcu(&len, NULL);
 	save_chunk(f, dst, len, _T("KBM1"), 0);
 	xfree (dst);
@@ -1103,6 +1101,7 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
 	dst = save_kbmcu3(&len, NULL);
 	save_chunk(f, dst, len, _T("KBM3"), 0);
 	xfree (dst);
+#endif
 
 #ifdef AUTOCONFIG
 	// new

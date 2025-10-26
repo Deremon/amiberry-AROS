@@ -99,12 +99,42 @@ static SelectFileListModel* fileList;
 static void checkfoldername(const std::string& current)
 {
 	DIR* dir;
-
+#ifdef __AROS__
+        char tmppath[MAX_DPATH];
+        char* newcur = static_cast<char*>(std::malloc(MAX_DPATH));
+        int len = strlen(current.c_str());
+                // Workaround for ".."
+                if (current.c_str()[len - 1] == '.' && current.c_str()[len - 2] == '.')
+                {
+                        strncpy(tmppath, current.c_str(), MAX_DPATH);
+                        char *p = tmppath + len;
+                        int cnt = 0;
+                        while (p > tmppath)
+                        {
+                                if (*p == '.') cnt++;
+                                if (*p == '/' || *p == ':') cnt++;
+                                if (cnt == 4) // 2x '.' & 2x '/'
+                                {
+                                        if (*p == ':') p[1] = '\0'; else p[0] = '\0';
+                                        newcur = tmppath;
+                                        break;
+                                }
+                                p--;
+                        }
+                } else {
+                        strncpy(newcur, current.c_str(), MAX_DPATH);
+                }
+        if ((dir = opendir(newcur)))
+        {
+		fileList->changeDir(newcur);
+                auto* const ptr = newcur;
+#else
 	if ((dir = opendir(current.c_str())))
 	{
 		char actualpath[MAX_DPATH];
 		fileList->changeDir(current);
 		auto* const ptr = realpath(current.c_str(), actualpath);
+#endif
 		workingDir = std::string(ptr);
 		closedir(dir);
 		lstFiles->adjustSize();
@@ -249,7 +279,12 @@ static void InitSelectFile(const std::string& title)
 	txtCurrent->addActionListener(editFilePathActionListener);
 
 	selectFileActionListener = new SelectFileActionListener();
+
+#ifdef __AROS__ // temporary fs fix
+	fileList = new SelectFileListModel("");
+#else
 	fileList = new SelectFileListModel(".");
+#endif /* AROS */
 
 	lstFiles = new gcn::ListBox(fileList);
 	lstFiles->setSize(DIALOG_WIDTH - 45, DIALOG_HEIGHT - 108);

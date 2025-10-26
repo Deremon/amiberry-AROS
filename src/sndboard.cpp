@@ -12,9 +12,11 @@
 #include "sysdeps.h"
 
 #include "options.h"
+#include "uae.h"
 #include "memory.h"
 #include "newcpu.h"
 #include "debug.h"
+#include "custom.h"
 #include "sndboard.h"
 #include "audio.h"
 #include "autoconf.h"
@@ -2489,7 +2491,9 @@ static bool audio_state_sndboard_fm801(int streamid, void *params)
 		return false;
 	if (data->play_on) {
 		uae_u8 sample[2 * 6] = { 0 };
+#ifdef WITH_PCI
 		pci_read_dma(data->pcibs, data->play_dma2[data->dmach], sample, data->bytesperframe);
+#endif
 		for (int i = 0; i < data->ch; i++) {
 			uae_s16 smp;
 			int vol;

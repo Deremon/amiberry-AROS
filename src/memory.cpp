@@ -18,8 +18,10 @@
 #include "uae.h"
 #include "memory.h"
 #include "rommgr.h"
+#include "ersatz.h"
 #include "zfile.h"
 #include "custom.h"
+#include "events.h"
 #include "newcpu.h"
 #include "autoconf.h"
 #include "savestate.h"
@@ -34,14 +36,17 @@
 #ifdef ENFORCER
 #include "enforcer.h"
 #endif
+#include "threaddep/thread.h"
 #include "gayle.h"
 #include "debug.h"
 #include "debugmem.h"
+#include "gfxboard.h"
 #include "cpuboard.h"
 #ifdef WITH_PPC
 #include "uae/ppc.h"
 #endif
 #include "devices.h"
+#include "inputdevice.h"
 #ifdef WITH_DRACO
 #include "draco.h"
 #endif
@@ -1051,7 +1056,6 @@ uae_u16 kickstart_version;
 *
 */
 static int a1000_kickstart_mode;
-static uaecptr a1000_kickstart_size;
 static uae_u8 *a1000_bootrom;
 static void a1000_handle_kickstart (int mode)
 {
@@ -1060,15 +1064,12 @@ static void a1000_handle_kickstart (int mode)
 	protect_roms (false);
 	if (mode == 0) {
 		a1000_kickstart_mode = 0;
-		if (a1000_kickstart_size == ROM_SIZE_256) {
-			memcpy (kickmem_bank.baseaddr, kickmem_bank.baseaddr + ROM_SIZE_256, ROM_SIZE_256);
-		}
-		kickstart_version = (kickmem_bank.baseaddr[a1000_kickstart_size + 12] << 8) | kickmem_bank.baseaddr[a1000_kickstart_size + 13];
-		kickmem_bank.baseaddr_direct_r = kickmem_bank.baseaddr;
+		memcpy (kickmem_bank.baseaddr, kickmem_bank.baseaddr + ROM_SIZE_256, ROM_SIZE_256);
+		kickstart_version = (kickmem_bank.baseaddr[ROM_SIZE_256 + 12] << 8) | kickmem_bank.baseaddr[ROM_SIZE_256 + 13];
 	} else {
 		a1000_kickstart_mode = 1;
+		memcpy (kickmem_bank.baseaddr, a1000_bootrom, ROM_SIZE_256);
 		kickstart_version = 0;
-		kickmem_bank.baseaddr_direct_r = NULL;
 	}
 	if (kickstart_version == 0xffff)
 		kickstart_version = 0;
@@ -1079,109 +1080,22 @@ void a1000_reset (void)
 	a1000_handle_kickstart (1);
 }
 
-static void REGPARAM3 kickmem_lput(uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_wput(uaecptr, uae_u32) REGPARAM;
-static void REGPARAM3 kickmem_bput(uaecptr, uae_u32) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_lget(uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_wget(uaecptr) REGPARAM;
-static uae_u32 REGPARAM3 kickmem_bget(uaecptr) REGPARAM;
+static void REGPARAM3 kickmem_lput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_wput (uaecptr, uae_u32) REGPARAM;
+static void REGPARAM3 kickmem_bput (uaecptr, uae_u32) REGPARAM;
 
+MEMORY_BGET(kickmem);
+MEMORY_WGET(kickmem);
+MEMORY_LGET(kickmem);
 MEMORY_CHECK(kickmem);
 MEMORY_XLATE(kickmem);
-
-extern bool get_power_led(void);
-
-static uaecptr get_a1000_addr(uaecptr addr)
-{
-	bool led = get_power_led();
-	addr -= led && a1000_kickstart_size == ROM_SIZE_512 ? ROM_SIZE_256 : 0;
-	return addr;
-}
-
-static uae_u32 REGPARAM2 kickmem_lget(uaecptr addr)
-{
-	uae_u32 *p;
-	if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
-			addr &= kickmem_bank.mask;
-			p = (uae_u32*)(kickmem_bank.baseaddr + addr);
-		} else {
-			addr &= kickmem_bank.mask;
-			p = (uae_u32*)(a1000_bootrom + addr);
-		}
-	} else {
-		addr &= kickmem_bank.mask;
-		p = (uae_u32*)(kickmem_bank.baseaddr + addr);
-	}
-	uae_u32 m = do_get_mem_long(p);
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, m, 4, false);
-	}
-#endif
-	return m;
-}
-static uae_u32 REGPARAM2 kickmem_wget(uaecptr addr)
-{
-	uae_u16 *p;
-	if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
-			addr &= kickmem_bank.mask;
-			p = (uae_u16*)(kickmem_bank.baseaddr + addr);
-		} else {
-			addr &= kickmem_bank.mask;
-			p = (uae_u16*)(a1000_bootrom + addr);
-		}
-	} else {
-		addr &= kickmem_bank.mask;
-		p = (uae_u16*)(kickmem_bank.baseaddr + addr);
-	}
-	uae_u16 m = do_get_mem_word(p);
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, m, 2, false);
-	}
-#endif
-	return m;
-}
-static uae_u32 REGPARAM2 kickmem_bget(uaecptr addr)
-{
-	uae_u8 *p;
-	if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
-			addr &= kickmem_bank.mask;
-			p = (uae_u8*)(kickmem_bank.baseaddr + addr);
-		} else {
-			addr &= kickmem_bank.mask;
-			p = (uae_u8*)(a1000_bootrom + addr);
-		}
-	} else {
-		addr &= kickmem_bank.mask;
-		p = (uae_u8*)(kickmem_bank.baseaddr + addr);
-	}
-	uae_u8 m = *p;
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, m, 1, false);
-	}
-#endif
-	return m;
-}
 
 static void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 {
 	uae_u32 *m;
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, b, 4, true);
-	}
-#endif
 	if (currprefs.rom_readwrite && rom_write_enabled) {
 		addr &= kickmem_bank.mask;
-		m = (uae_u32*)(kickmem_bank.baseaddr + addr);
+		m = (uae_u32 *)(kickmem_bank.baseaddr + addr);
 		do_put_mem_long (m, b);
 #if 0
 		if (addr == ROM_SIZE_512-4) {
@@ -1190,11 +1104,10 @@ static void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 		}
 #endif
 	} else if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
+		if (addr >= 0xfc0000) {
 			addr &= kickmem_bank.mask;
-			m = (uae_u32*)(kickmem_bank.baseaddr + addr);
-			do_put_mem_long(m, b);
+			m = (uae_u32 *)(kickmem_bank.baseaddr + addr);
+			do_put_mem_long (m, b);
 			return;
 		} else
 			a1000_handle_kickstart (0);
@@ -1206,20 +1119,14 @@ static void REGPARAM2 kickmem_lput (uaecptr addr, uae_u32 b)
 static void REGPARAM2 kickmem_wput (uaecptr addr, uae_u32 b)
 {
 	uae_u16 *m;
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, b, 2, true);
-	}
-#endif
 	if (currprefs.rom_readwrite && rom_write_enabled) {
 		addr &= kickmem_bank.mask;
 		m = (uae_u16 *)(kickmem_bank.baseaddr + addr);
 		do_put_mem_word (m, b);
 	} else if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
+		if (addr >= 0xfc0000) {
 			addr &= kickmem_bank.mask;
-			m = (uae_u16*)(kickmem_bank.baseaddr + addr);
+			m = (uae_u16 *)(kickmem_bank.baseaddr + addr);
 			do_put_mem_word (m, b);
 			return;
 		} else
@@ -1231,23 +1138,16 @@ static void REGPARAM2 kickmem_wput (uaecptr addr, uae_u32 b)
 
 static void REGPARAM2 kickmem_bput (uaecptr addr, uae_u32 b)
 {
-#ifdef DEBUGGER
-	if (debug_dma) {
-		record_rom_access(kickmem_bank.start + addr, b, 1, true);
-	}
-#endif
 	if (currprefs.rom_readwrite && rom_write_enabled) {
 		addr &= kickmem_bank.mask;
 		kickmem_bank.baseaddr[addr] = b;
 	} else if (a1000_kickstart_mode) {
-		if (addr >= 0x1000000 - ROM_SIZE_256) {
-			addr = get_a1000_addr(addr);
+		if (addr >= 0xfc0000) {
 			addr &= kickmem_bank.mask;
 			kickmem_bank.baseaddr[addr] = b;
 			return;
-		} else {
+		} else
 			a1000_handle_kickstart (0);
-		}
 	} else if (currprefs.illegal_mem) {
 		write_log (_T("Illegal kickmem bput at %08x PC=%08x\n"), addr, M68K_GETPC);
 	}
@@ -1749,24 +1649,17 @@ static int read_kickstart(struct zfile *f, uae_u8 *mem, int size, int dochecksum
 		return size;
 
 	if (currprefs.cs_a1000ram && i < ROM_SIZE_256) {
-		if (!a1000_bootrom) {
-			a1000_kickstart_size = ROM_SIZE_256;
-			if (is_board_enabled(&currprefs, ROMTYPE_512KWOM, 0)) {
-				a1000_kickstart_size = ROM_SIZE_512;
-			}
-			a1000_bootrom = xcalloc(uae_u8, ROM_SIZE_256 + 4);
+		int off = 0;
+		if (!a1000_bootrom)
+			a1000_bootrom = xcalloc(uae_u8, ROM_SIZE_256);
+		while (off + i < ROM_SIZE_256) {
+			memcpy(a1000_bootrom + off, kickmem_bank.baseaddr, i);
+			off += i;
 		}
-		if (i <= ROM_SIZE_256) {
-			int off = 0;
-			while (off + i < ROM_SIZE_256) {
-				memcpy(a1000_bootrom + off, kickmem_bank.baseaddr, i);
-				off += i;
-			}
-			memset(kickmem_bank.baseaddr, 0, kickmem_bank.allocated_size);
-			a1000_handle_kickstart(1);
-			dochecksum = 0;
-			i = ROM_SIZE_512;
-		}
+		memset(kickmem_bank.baseaddr, 0, kickmem_bank.allocated_size);
+		a1000_handle_kickstart(1);
+		dochecksum = 0;
+		i = ROM_SIZE_512;
 	}
 
 	for (j = 0; j < 256 && i >= ROM_SIZE_256; j++) {
@@ -1863,11 +1756,17 @@ static bool load_extendedkickstart (const TCHAR *romextfile, int type)
 	return ret;
 }
 
-#ifndef AMIBERRY
+#ifdef AMIBERRY
+
+#else
 extern unsigned char arosrom[];
 extern unsigned int arosrom_len;
 #endif
+
+#ifdef AMIBERRY_SERIAL
 extern int seriallog;
+#endif
+
 static bool load_kickstart_replacement(void)
 {
 #ifdef AMIBERRY
@@ -1929,7 +1828,9 @@ static bool load_kickstart_replacement(void)
 	zfile_fclose(f);
 	xfree(arosrom);
 
+#ifdef AMIBERRY_SERIAL
 	seriallog = -1;
+#endif
 
 	// if 68000-68020 config without any other fast ram with m68k aros: enable special extra RAM.
 	if (currprefs.cpu_model <= 68020 &&
@@ -2100,34 +2001,34 @@ static int load_kickstart (void)
 
 		maxsize = ROM_SIZE_512;
 
-		if ((tmp[0] == 0x00 && tmp[1] == 0x00 && tmp[2] == 0x03 && tmp[3] == 0xf3 &&
-			tmp[4] == 0x00 && tmp[5] == 0x00 && tmp[6] == 0x00 && tmp[7] == 0x00) ||
-			(tmp[0] == 0x7f && tmp[1] == 'E' && tmp[2] == 'L' && tmp[3] == 'F')) {
-			struct zfile *zf = read_executable_rom(f, ROM_SIZE_512, 3);
-			if (zf) {
-				int size = zfile_size32(zf);
-				zfile_fclose(f);
-				f = zf;
-				if (size > ROM_SIZE_512) {
-					maxsize = zfile_size32(zf);
-					singlebigrom = true;
-					extendedkickmem2a_bank.reserved_size = 524288;
-					extendedkickmem2a_bank.mask = extendedkickmem2a_bank.allocated_size - 1;
-					extendedkickmem2a_bank.start = size > 2 * ROM_SIZE_512 ? 0xa00000 : 0xa80000;
-					mapped_malloc(&extendedkickmem2a_bank);
-					extendedkickmem2b_bank.reserved_size = 524288;
-					extendedkickmem2b_bank.mask = extendedkickmem2a_bank.allocated_size - 1;
-					extendedkickmem2b_bank.start = extendedkickmem2a_bank.start + 524288;
-					mapped_malloc(&extendedkickmem2b_bank);
-					read_kickstart(f, extendedkickmem2a_bank.baseaddr, 524288, 0, 1);
-					read_kickstart(f, extendedkickmem2b_bank.baseaddr, 524288, 0, 1);
-					memset(kickmem_bank.baseaddr, 0, ROM_SIZE_512);
-					memcpy(kickmem_bank.baseaddr, extendedkickmem2a_bank.baseaddr, 0xd0);
-					memcpy(kickmem_bank.baseaddr + ROM_SIZE_512 - 20, romend, sizeof(romend));
-					kickstart_fix_checksum(kickmem_bank.baseaddr, ROM_SIZE_512);
-				}
-			}
-		}
+		//if ((tmp[0] == 0x00 && tmp[1] == 0x00 && tmp[2] == 0x03 && tmp[3] == 0xf3 &&
+		//	tmp[4] == 0x00 && tmp[5] == 0x00 && tmp[6] == 0x00 && tmp[7] == 0x00) ||
+		//	(tmp[0] == 0x7f && tmp[1] == 'E' && tmp[2] == 'L' && tmp[3] == 'F')) {
+		//	struct zfile *zf = read_executable_rom(f, ROM_SIZE_512, 3);
+		//	if (zf) {
+		//		int size = zfile_size32(zf);
+		//		zfile_fclose(f);
+		//		f = zf;
+		//		if (size > ROM_SIZE_512) {
+		//			maxsize = zfile_size32(zf);
+		//			singlebigrom = true;
+		//			extendedkickmem2a_bank.reserved_size = 524288;
+		//			extendedkickmem2a_bank.mask = extendedkickmem2a_bank.allocated_size - 1;
+		//			extendedkickmem2a_bank.start = size > 2 * ROM_SIZE_512 ? 0xa00000 : 0xa80000;
+		//			mapped_malloc(&extendedkickmem2a_bank);
+		//			extendedkickmem2b_bank.reserved_size = 524288;
+		//			extendedkickmem2b_bank.mask = extendedkickmem2a_bank.allocated_size - 1;
+		//			extendedkickmem2a_bank.start = extendedkickmem2a_bank.start + 524288;
+		//			mapped_malloc(&extendedkickmem2a_bank);
+		//			read_kickstart(f, extendedkickmem2a_bank.baseaddr, 524288, 0, 1);
+		//			read_kickstart(f, extendedkickmem2b_bank.baseaddr, 524288, 0, 1);
+		//			memset(kickmem_bank.baseaddr, 0, ROM_SIZE_512);
+		//			memcpy(kickmem_bank.baseaddr, extendedkickmem2a_bank.baseaddr, 0xd0);
+		//			memcpy(kickmem_bank.baseaddr + ROM_SIZE_512 - 20, romend, sizeof(romend));
+		//			kickstart_fix_checksum(kickmem_bank.baseaddr, ROM_SIZE_512);
+		//		}
+		//	}
+		//}
 
 		if (!singlebigrom) {
 			zfile_fseek(f, 0, SEEK_END);
@@ -2144,11 +2045,6 @@ static int load_kickstart (void)
 				}
 				if (filesize >= ROM_SIZE_512 * 2) {
 					struct romdata *rd = getromdatabyzfile(f);
-					// CD32 with swapper upper and lower 512k?
-					if (rd && (rd->type & ROMTYPE_KICKCD32) && rd->size == ROM_SIZE_512) {
-						kspos = 0;
-						extpos = ROM_SIZE_512;
-					}
 					zfile_fseek(f, kspos, SEEK_SET);
 				}
 				if (filesize >= ROM_SIZE_512 * 4) {
@@ -2215,9 +2111,6 @@ static void set_direct_memory(addrbank *ab)
 {
 	if (!(ab->flags & ABFLAG_DIRECTACCESS))
 		return;
-	if (currprefs.cpu_memory_cycle_exact && currprefs.cpu_model < 68020) {
-		return;
-	}
 	ab->baseaddr_direct_r = ab->baseaddr;
 	if (!(ab->flags & ABFLAG_ROM))
 		ab->baseaddr_direct_w = ab->baseaddr;
@@ -3413,8 +3306,7 @@ void memory_init (void)
 	extendedkickmem2b_bank.reserved_size = 0;
 	extendedkickmem_type = 0;
 	chipmem_bank.baseaddr = 0;
-	mem25bit_bank.reserved_size = 0;
-	mem25bit_bank.baseaddr = NULL;
+	mem25bit_bank.reserved_size = mem25bit_bank.reserved_size = 0;
 	a3000lmem_bank.reserved_size = a3000hmem_bank.reserved_size = 0;
 	a3000lmem_bank.baseaddr = a3000hmem_bank.baseaddr = NULL;
 	bogomem_bank.baseaddr = NULL;

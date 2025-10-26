@@ -149,7 +149,11 @@ namespace gcn
         switch (event.type)
         {
           case SDL_TEXTINPUT:
-              keyInput.setKey(utf8ToUnicode(event.text.text));
+#ifdef __AROS__
+			keyInput.setKey(static_cast<unsigned char>(event.text.text[0]));
+#else
+			keyInput.setKey(utf8ToUnicode(event.text.text));
+#endif
               keyInput.setType(KeyInput::Pressed);
               keyInput.setShiftPressed(false);
               keyInput.setControlPressed(false);
@@ -169,11 +173,15 @@ namespace gcn
               keyInput.setNumericPad(event.key.keysym.sym >= SDLK_KP_0
                                      && event.key.keysym.sym <= SDLK_KP_EQUALS);
 
+#ifdef __AROS__
+				mKeyInputQueue.push(keyInput);
+#else
               if (!keyInput.getKey().isPrintable() || keyInput.isAltPressed()
                   || keyInput.isControlPressed())
               {
                   mKeyInputQueue.push(keyInput);
               }
+#endif
               break;
 
           case SDL_KEYUP:

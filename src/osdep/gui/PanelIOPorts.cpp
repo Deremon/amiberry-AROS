@@ -164,6 +164,7 @@ void InitPanelIO(const config_category& category)
 	{
 		if (i.find(SERIAL_INTERNAL) != std::string::npos)
 		{
+#ifdef AMIBERRY_SERIAL
 			std::string tmp = i;
 			if (!shmem_serial_state())
 				shmem_serial_create();
@@ -178,6 +179,7 @@ void InitPanelIO(const config_category& category)
 			default: break;
 			}
 			serial_ports_list.add(tmp);
+#endif
 		}
 		else
 			serial_ports_list.add(i);

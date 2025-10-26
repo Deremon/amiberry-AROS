@@ -290,9 +290,6 @@ void amiberry_gui_init()
 	if (!mon->gui_window)
 	{
 		write_log("Creating Amiberry GUI window...\n");
-		regqueryint(nullptr, _T("GUIPosX"), &gui_window_rect.x);
-		regqueryint(nullptr, _T("GUIPosY"), &gui_window_rect.y);
-
         Uint32 mode;
 		if (!kmsdrm_detected)
 		{
@@ -317,8 +314,8 @@ void amiberry_gui_init()
         if (amiberry_options.rotation_angle == 0 || amiberry_options.rotation_angle == 180)
         {
 			mon->gui_window = SDL_CreateWindow("Amiberry GUI",
-				gui_window_rect.x,
-				gui_window_rect.y,
+				gui_window_rect.x != 0 ? gui_window_rect.x : SDL_WINDOWPOS_CENTERED,
+				gui_window_rect.y != 0 ? gui_window_rect.y : SDL_WINDOWPOS_CENTERED,
 				gui_window_rect.w,
 				gui_window_rect.h,
 				mode);
@@ -326,8 +323,8 @@ void amiberry_gui_init()
         else
         {
 			mon->gui_window = SDL_CreateWindow("Amiberry GUI",
-				gui_window_rect.y,
-				gui_window_rect.x,
+				gui_window_rect.y != 0 ? gui_window_rect.y : SDL_WINDOWPOS_CENTERED,
+				gui_window_rect.x != 0 ? gui_window_rect.x : SDL_WINDOWPOS_CENTERED,
 				gui_window_rect.h,
 				gui_window_rect.w,
 				mode);
@@ -348,10 +345,25 @@ void amiberry_gui_init()
 
 	if (mon->gui_renderer == nullptr)
 	{
+#ifndef __AROS__ //SDL render fix ACCELERATED is not supported
 		mon->gui_renderer = SDL_CreateRenderer(mon->gui_window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+#else
+		mon->gui_renderer = SDL_CreateRenderer(mon->gui_window, -1, SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC);
+#endif
 		check_error_sdl(mon->gui_renderer == nullptr, "Unable to create a renderer:");
 	}
 	DPIHandler::set_render_scale(mon->gui_renderer);
+
+	auto render_scale_quality = "linear";
+	bool integer_scale = false;
+
+#ifdef __MACH__
+	render_scale_quality = "nearest";
+	integer_scale = true;
+#endif
+
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, render_scale_quality);
+	SDL_RenderSetIntegerScale(mon->gui_renderer, integer_scale ? SDL_TRUE : SDL_FALSE);
 
 	gui_texture = SDL_CreateTexture(mon->gui_renderer, gui_screen->format->format, SDL_TEXTUREACCESS_STREAMING, gui_screen->w,
 									gui_screen->h);
@@ -413,8 +425,6 @@ void amiberry_gui_halt()
 	}
 
 	if (mon->gui_window && !kmsdrm_detected) {
-		regsetint(nullptr, _T("GUIPosX"), gui_window_rect.x);
-		regsetint(nullptr, _T("GUIPosY"), gui_window_rect.y);
 		SDL_DestroyWindow(mon->gui_window);
 		mon->gui_window = nullptr;
 	}
@@ -1271,6 +1281,8 @@ void run_gui()
 			quit_program = -UAE_RESET_HARD; // Hard reset required...
 	}
 
+#ifndef __AROS__
 	// Reset counter for access violations
 	init_max_signals();
+#endif
 }

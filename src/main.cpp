@@ -41,14 +41,18 @@
 #include "gui.h"
 #include "zfile.h"
 #include "autoconf.h"
+#include "picasso96.h"
 #include "native2amiga.h"
 #include "savestate.h"
+#include "filesys.h"
 #include "blkdev.h"
 #include "consolehook.h"
 #include "gfxboard.h"
 #ifdef WITH_LUA
 #include "luascript.h"
 #endif
+#include "uaenative.h"
+#include "tabletlibrary.h"
 #include "cpuboard.h"
 #ifdef WITH_PPC
 #include "uae/ppc.h"
@@ -66,14 +70,16 @@
 #if defined(__linux__)
 #include <linux/kd.h>
 #endif
+#ifndef __AROS__
 #include <sys/ioctl.h>
+#endif
 
 #include "fsdb.h"
 #include "fsdb_host.h"
 #include "keyboard.h"
 
 // Special version string so that AmigaOS can detect it
-static constexpr char __ver[40] = "$VER: Amiberry v8.0.0 (2025-09-05)";
+static constexpr char __ver[40] = "$VER: Amiberry v7.1.1 (2025-08-23)";
 
 long int version = 256 * 65536L * UAEMAJOR + 65536L * UAEMINOR + UAESUBREV;
 
@@ -320,7 +326,7 @@ void fixup_cpu (struct uae_prefs *p)
 		p->cachesize = 0;
 		error_log (_T("JIT requires 68020 or better CPU."));
 	}
-	if ((p->fpu_model == 0 || !p->cachesize) && p->compfpu) {
+	if (p->fpu_model == 0 && p->compfpu) {
 		p->compfpu = false;
 	}
 
@@ -461,43 +467,14 @@ void fixup_prefs (struct uae_prefs *p, bool userconfig)
 		}
 	}
 
-	if (p->monitoremu && p->monitoremu_mon > 0) {
-		if (isfullscreen() != 0) {
-			p->monitoremu_mon = 0;
-			error_log(_T("Multi virtual monitor support requires windowed mode."));
-		}
-	}
-
-	bool initial_monitor = false;
-	for (int i = 0; i < MAX_RTG_BOARDS; i++) {
-		struct rtgboardconfig *rbc = &p->rtgboards[i];
-		if (rbc->initial_active) {
-			if (initial_monitor) {
-				rbc->initial_active = false;
-				error_log(_T("Only one graphics card can be initial active."));
-			}
-			initial_monitor = true;
-		}
-		if (rbc->monitor_id > 0 && p->monitoremu_mon == rbc->monitor_id) {
-			error_log(_T("Video port monitor %d was allocated for graphics card %d."), rbc->monitor_id + 1, i + 1);
-			p->monitoremu_mon = 0;
-		}
-		if (rbc->monitor_id > 0) {
-			if (!p->gfx_api) {
-				rbc->monitor_id = 0;
-				error_log(_T("Multi virtual monitor support requires SDL2 mode."));
-			}
-			if (isfullscreen() > 0) {
-				rbc->monitor_id = 0;
-				error_log(_T("Multi virtual monitor support is not available in fullscreen mode."));
-			}
-		}
+	for (auto& rtgboard : p->rtgboards) {
+		auto* const rbc = &rtgboard;
 		if (rbc->rtgmem_size > max_z3fastmem && rbc->rtgmem_type == GFXBOARD_UAE_Z3)
 		{
 			error_log(
 				_T("Graphics card memory size %d (0x%x) larger than maximum reserved %d (0x%x)."), rbc->rtgmem_size,
-				rbc->rtgmem_size, max_z3fastmem, max_z3fastmem);
-			rbc->rtgmem_size = max_z3fastmem;
+				rbc->rtgmem_size, 0x1000000, 0x1000000);
+			rbc->rtgmem_size = 0x1000000;
 		}
 
 		if ((rbc->rtgmem_size & rbc->rtgmem_size - 1) != 0 || (rbc->rtgmem_size != 0 && rbc->rtgmem_size < 0x100000))
@@ -507,15 +484,6 @@ void fixup_prefs (struct uae_prefs *p, bool userconfig)
 				rbc->rtgmem_size = max_z3fastmem;
 			else
 				rbc->rtgmem_size = 0;
-		}
-		for (int j = 0; j < MAX_RTG_BOARDS; j++) {
-			struct rtgboardconfig *rbc2 = &p->rtgboards[j];
-			if (j == i)
-				continue;
-			if (rbc->monitor_id > 0 && rbc2->monitor_id == rbc->monitor_id) {
-				rbc2->monitor_id = 0;
-				error_log(_T("Graphics card %d and %d can't use same monitor %d."), i + 1, j + 1);
-			}
 		}
 	}
 
@@ -639,7 +607,9 @@ void fixup_prefs (struct uae_prefs *p, bool userconfig)
 	if (p->socket_emu) {
 		write_log (_T("Compile-time option of BSDSOCKET_SUPPORTED was not enabled.  You can't use bsd-socket emulation.\n"));
 		p->socket_emu = 0;
+#ifndef __AROS__
 		err = 1;
+#endif
 	}
 #endif
 	if (p->socket_emu && p->uaeboard >= 3) {
@@ -1329,6 +1299,11 @@ static void parse_cmdline_and_init_file(int argc, TCHAR **argv)
 */
 static void do_start_program ()
 {
+#ifdef DEBUG
+#ifdef __AROS__
+	write_log("TSC frequency: %f MHz\n", syncbase / 1000000.0);
+#endif
+#endif
 	if (quit_program == -UAE_QUIT)
 		return;
 	/* Do a reset on startup. Whether this is elegant is debatable. */

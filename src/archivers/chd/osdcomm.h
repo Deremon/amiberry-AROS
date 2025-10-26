@@ -39,7 +39,9 @@
 #define ATTR_COLD               __attribute__((cold))
 #define UNEXPECTED(exp)         __builtin_expect(!!(exp), 0)
 #define EXPECTED(exp)           __builtin_expect(!!(exp), 1)
+#ifndef __AROS__
 #define RESTRICT                __restrict__
+#endif
 #else
 #define ATTR_PRINTF(x,y)
 #define ATTR_CONST
@@ -48,7 +50,9 @@
 #define ATTR_COLD
 #define UNEXPECTED(exp)         (exp)
 #define EXPECTED(exp)           (exp)
+#ifndef __AROS__
 #define RESTRICT
+#endif
 #endif
 
 

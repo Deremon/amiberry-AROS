@@ -27,6 +27,7 @@
 
 #include "options.h"
 #include "memory.h"
+#include "custom.h"
 #include "newcpu.h"
 #include "autoconf.h"
 #include "traps.h"
@@ -54,6 +55,8 @@
 #elif defined(__APPLE__)
 #include <mutex>
 static std::mutex bsdsock_mutex;
+#elif defined __AROS__
+#include <aros/posixc/errno.h>
 #else
 #include <mutex>
 static std::mutex bsdsock_mutex;

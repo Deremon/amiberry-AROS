@@ -25,6 +25,11 @@
 #define uae_bswap_16 OSSwapInt16
 #define uae_bswap_32 OSSwapInt32
 #define uae_bswap_64 OSSwapInt64
+#elif defined(__AROS__)
+#include <SDL2/SDL_endian.h>
+#define uae_bswap_16 SDL_Swap16
+#define uae_bswap_32 SDL_Swap32
+#define uae_bswap_64 SDL_Swap64
 #else
 #include <byteswap.h>
 #define uae_bswap_16 bswap_16

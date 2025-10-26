@@ -31,7 +31,7 @@
 #include "fsdb.h"
 
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__AROS__)
 #include <dlfcn.h>
 #endif
 
@@ -200,6 +200,7 @@ static TCHAR *get_native_library_path (const TCHAR *library_name)
 
 static void *dl_symbol(void *dl, const char *name)
 {
+#ifndef __AROS__
     if (dl == NULL) {
         return NULL;
     }
@@ -208,19 +209,23 @@ static void *dl_symbol(void *dl, const char *name)
 #else
     return dlsym (dl, name);
 #endif
+#endif
 }
 
 static void dl_close(void *dl)
 {
+#ifndef __AROS__
 #ifdef _WIN32
     FreeLibrary ((HMODULE) dl);
 #else
     dlclose (dl);
 #endif
+#endif
 }
 
 static void set_library_globals(void *dl)
 {
+#ifndef __AROS__
     void *address;
 
     address = dl_symbol(dl, "uni_version");
@@ -248,11 +253,13 @@ static void set_library_globals(void *dl)
     address = dl_symbol(dl, "write_log");
     if (address) *((write_log_function *) address) = &write_log;
 #endif
+#endif
 }
 
 static uae_u32 open_library (const char *name, uae_u32 min_version)
 {
     syncdivisor = (3580000.0f * CYCLE_UNIT) / (float) syncbase;
+#ifndef __AROS__
 
     for (const char *c = name; *c; c++) {
         if (*c == '/' || *c == '\\' || *c == ':') {
@@ -302,10 +309,14 @@ static uae_u32 open_library (const char *name, uae_u32 min_version)
     uae_u32 handle = register_handle (library_data, NULL);
     write_log(_T("uni: opened library %08x (%p)\n"), handle, dl);
     return handle;
+#else
+    return 0;
+#endif
 }
 
 uae_u32 uaenative_open_library (TrapContext *ctx, int flags)
 {
+#ifndef __AROS__
     char namebuf[256];
 	
 	if (!currprefs.native_code) {
@@ -334,6 +345,9 @@ uae_u32 uaenative_open_library (TrapContext *ctx, int flags)
         return 0;
     }
     return result;
+#else
+    return 0;
+#endif
 }
 
 static struct library_data *get_library_data_from_handle (uae_u32 handle)
@@ -450,7 +464,7 @@ static uae_u32 do_call_function_compat_asm (struct uni *uni)
 
 static void do_call_function (struct uni *uni)
 {
-    write_log("uni: calling native function %p\n", uni->native_function);
+//    printf("uni: calling native function %p\n", uni->native_function);
 
     frame_time_t start_time;
     const int flags = uni->flags;
