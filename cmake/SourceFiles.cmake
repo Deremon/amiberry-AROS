@@ -1,4 +1,32 @@
 # Define the list of source files
+#disabled
+#        src/archivers/chd/avhuff.cpp
+#        src/archivers/chd/bitmap.cpp
+#        src/archivers/chd/cdrom.cpp
+#        src/archivers/chd/chd.cpp
+#        src/archivers/chd/chdcd.cpp
+#        src/archivers/chd/chdcodec.cpp
+#        src/archivers/chd/corealloc.cpp
+#        src/archivers/chd/corefile.cpp
+#        src/archivers/chd/corestr.cpp
+#        src/archivers/chd/flac.cpp
+#        src/archivers/chd/harddisk.cpp
+#        src/archivers/chd/hashing.cpp
+#        src/archivers/chd/huffman.cpp
+#        src/archivers/chd/md5.cpp
+#        src/archivers/chd/osdcore.cpp
+#        src/archivers/chd/osdlib_unix.cpp
+#        src/archivers/chd/osdsync.cpp
+#        src/archivers/chd/palette.cpp
+#        src/archivers/chd/posixdir.cpp
+#        src/archivers/chd/posixfile.cpp
+#        src/archivers/chd/posixptty.cpp
+#        src/archivers/chd/posixsocket.cpp
+#        src/archivers/chd/strconv.cpp
+#        src/archivers/chd/strformat.cpp
+#        src/archivers/chd/unicode.cpp
+#        src/archivers/chd/vecstream.cpp
+#        src/archivers/chd/utf8proc.c
 set(SOURCE_FILES
         src/a2065.cpp
         src/a2091.cpp
@@ -138,33 +166,6 @@ set(SOURCE_FILES
         src/archivers/7z/XzDec.c
         src/archivers/7z/XzEnc.c
         src/archivers/7z/XzIn.c
-        src/archivers/chd/avhuff.cpp
-        src/archivers/chd/bitmap.cpp
-        src/archivers/chd/cdrom.cpp
-        src/archivers/chd/chd.cpp
-        src/archivers/chd/chdcd.cpp
-        src/archivers/chd/chdcodec.cpp
-        src/archivers/chd/corealloc.cpp
-        src/archivers/chd/corefile.cpp
-        src/archivers/chd/corestr.cpp
-        src/archivers/chd/flac.cpp
-        src/archivers/chd/harddisk.cpp
-        src/archivers/chd/hashing.cpp
-        src/archivers/chd/huffman.cpp
-        src/archivers/chd/md5.cpp
-        src/archivers/chd/osdcore.cpp
-        src/archivers/chd/osdlib_unix.cpp
-        src/archivers/chd/osdsync.cpp
-        src/archivers/chd/palette.cpp
-        src/archivers/chd/posixdir.cpp
-        src/archivers/chd/posixfile.cpp
-        src/archivers/chd/posixptty.cpp
-        src/archivers/chd/posixsocket.cpp
-        src/archivers/chd/strconv.cpp
-        src/archivers/chd/strformat.cpp
-        src/archivers/chd/unicode.cpp
-        src/archivers/chd/vecstream.cpp
-        src/archivers/chd/utf8proc.c
         src/archivers/dms/crc_csum.cpp
         src/archivers/dms/getbits.cpp
         src/archivers/dms/maketbl.cpp

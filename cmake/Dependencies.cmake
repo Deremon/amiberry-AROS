@@ -95,8 +95,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         png
         MPG123::libmpg123
         z
-        pthread
-        dl
+        lpthread
+ #       dl
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -104,4 +104,5 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif ()
 
 # Add dependencies to ensure external libraries are built
-add_dependencies(${PROJECT_NAME} mt32emu floppybridge capsimage guisan)
+#floppybridge capsimage
+add_dependencies(${PROJECT_NAME} mt32emu  guisan)

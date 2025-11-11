@@ -4,9 +4,9 @@ set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
 set(CMAKE_CROSSCOMPILING ON)
 set(homedir $ENV{HOME})
-set(CMAKE_C_COMPILER ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-gcc --sysroot=${homedir}/arosbuilds/core-linux-x86_64-d/bin/linux-x86_64/AROS/Development)
+set(CMAKE_C_COMPILER /usr/bin/x86_64-pc-aros-gcc)
 
-set(CMAKE_CXX_COMPILER ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-g++ --sysroot=${homedir}/arosbuilds/core-linux-x86_64-d/bin/linux-x86_64/AROS/Development)
+set(CMAKE_CXX_COMPILER /usr/bin/x86_64-pc-aros-g++)
 
 #non usare --sysroot....causa errore
 set(CMAKE_LINKER ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ld) 

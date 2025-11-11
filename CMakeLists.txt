@@ -7,6 +7,31 @@ project(amiberry
     HOMEPAGE_URL "https://amiberry.com"
 )
 
+set(CMAKE_CROSSCOMPILING ON)
+set(homedir $ENV{HOME})
+set(CMAKE_C_COMPILER /usr/bin/x86_64-pc-aros-gcc)
+
+set(CMAKE_CXX_COMPILER /usr/bin/x86_64-pc-aros-g++)
+
+#non usare --sysroot....causa errore
+set(CMAKE_LINKER ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ld) 
+
+set(CMAKE_C_COMPILER_AR ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ar)
+
+# from https://stackoverflow.com/questions/49763259/cmake-custom-toolchain-cmake-ar-and-cmake-cxx-archive-create
+set(CMAKE_AR ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ar CACHE FILEPATH "" FORCE)
+
+set(CMAKE_C_COMPILER_RANLIB ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ranlib)
+
+set(CMAKE_RANLIB ${homedir}/arosbuilds/toolchain-core-x86_64/x86_64-aros-ranlib)
+
+# sysroot location
+set(MYSYSROOT ${homedir}/arosbuilds/core-linux-x86_64-d/bin/linux-x86_64/AROS/Development)
+set(CMAKE_FIND_ROOT_PATH "${MYSYSROOT}")
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM     NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY     ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE     ONLY)
+
 # Prevent in-tree builds
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
     message(FATAL_ERROR "In-tree builds are not supported. Use a separate build directory.")
@@ -18,11 +43,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # Feature options
 option(USE_PCEM          "Use PCem for hardware emulation (no support for RISC-V)" ON)
 option(USE_LIBSERIALPORT "Use LibSerialPort for serial port emulation" ON)
-option(USE_LIBENET       "Use LibENET for network emulation" ON)
+option(USE_LIBENET       "Use LibENET for network emulation" OFF)
 option(USE_PORTMIDI      "Use PortMidi for MIDI emulation" ON)
 option(USE_LIBMPEG2      "Use LibMPEG2 for CD32 FMV support" ON)
-option(USE_UAENET_PCAP   "Use libpcap for uaenet (Linux/macOS)" ON)
-option(USE_ZSTD 	     "Use Zstandard for CHD compressed disk images" ON)
+option(USE_UAENET_PCAP   "Use libpcap for uaenet (Linux/macOS)" OFF)
+option(USE_ZSTD 	     "Use Zstandard for CHD compressed disk images" OFF)
 option(USE_GPIOD         "Use GPIOD to control GPIO LEDs" OFF)
 option(USE_DBUS          "Use DBus to control the emulator" OFF)
 option(USE_OPENGL        "Use OpenGL for rendering (currently BROKEN)" OFF)

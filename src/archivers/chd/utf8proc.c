@@ -39,7 +39,7 @@
    *  Description:
    *  Implementation of libutf8proc.
    */
-
+#ifndef __AROS__ //(temporary?) disable
 
 #include "utf8proc.h"
 
@@ -811,3 +811,4 @@ UTF8PROC_DLLEXPORT utf8proc_uint8_t* utf8proc_NFKC_Casefold(const utf8proc_uint8
         UTF8PROC_COMPOSE | UTF8PROC_COMPAT | UTF8PROC_CASEFOLD | UTF8PROC_IGNORE);
     return retval;
 }
+#endif
